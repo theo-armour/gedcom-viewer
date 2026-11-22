@@ -21,7 +21,7 @@ Use **📂 Open…** or drag a `.ged` file onto the tree. The file is read in yo
 
 The File menu opens the exports in my [genealogy repo](https://github.com/theo-armour/genealogy). People with a biography in my [family Wiki](https://theo-armour.github.io/genealogy/) are marked 📖 and link to their page.
 
-To add an export, put it in `Online-Genealogy/gedcom-files/` in the genealogy repo and add its name to `FILES` in `index.html`. To add a biography, add a line to `WIKI`.
+The menu lists every `.ged` file in the genealogy repo, found through GitHub when the page opens, so a new export shows up as soon as it's pushed. If GitHub can't be reached, the menu falls back to the files listed in `FILES` in `index.html`. To add a biography, add a line to `WIKI`.
 
 ## How it's made
 

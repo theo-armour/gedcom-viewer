@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="revised" content="2026-11-21 19:51">
+<meta name="revised" content="2026-11-21 19:58">
 <meta name="version" content="1.1.0">
 <title>GEDCOM Viewer</title>
 <link rel="icon" href="favicon.ico">
@@ -63,6 +63,7 @@ select, button, .btn, input[type=search] {
   font: inherit; color: var(--ink); background: var(--card);
   border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px;
 }
+#selFile { max-width: 24em; }   /* long repo paths */
 button, .btn { cursor: pointer; }
 button:hover, .btn:hover { border-color: var(--muted); }
 .bar .btn { color: var(--ink); font-size: 14px; }
@@ -219,12 +220,16 @@ footer { padding: 6px 16px 10px; color: var(--muted); font-size: 12.5px; }
 // The family files and biographies live in the genealogy repo.
 const GENEALOGY = 'https://theo-armour.github.io/genealogy/';
 
-// GEDCOM files to offer in the File menu. Add new exports here.
-const FILES_PATH = GENEALOGY + 'Online-Genealogy/gedcom-files/';
+// GEDCOM files for the File menu: every .ged in the genealogy repo, listed by
+// GitHub when the page opens. Paths start at the top of the genealogy repo.
+const FILES_LIST = 'https://api.github.com/repos/theo-armour/genealogy/git/trees/main?recursive=1';
+const FILES_FOLDER = 'Online-Genealogy/gedcom-files/';   // left off the menu labels
+const DEFAULT_FILE = FILES_FOLDER + '2025-08-18-myheritage-armour.ged';
+// Offered if GitHub can't be reached; replaced by the full list when it can.
 const FILES = [
-  '2025-08-18-myheritage-armour.ged',
-  '2025-08-23-carley-armour-family-tree.ged',
-  '2025-08-28-matthew-family-tree.ged'
+  DEFAULT_FILE,
+  FILES_FOLDER + '2025-08-23-carley-armour-family-tree.ged',
+  FILES_FOLDER + '2025-08-28-matthew-family-tree.ged'
 ];
 
 // Wiki folders: 'folder|page|photo'. Page defaults to 'README-' + folder (spaces as dashes) + '.md'.
@@ -281,7 +286,7 @@ const WIKI = [
 ];
 
 const settings = {
-  file: FILES[0],
+  file: DEFAULT_FILE,
   layout: 'horizontal',
   color: 'branch',
   up: 4,
@@ -886,7 +891,7 @@ const loadFile = (name) => {
   settings.file = name;
   saveSettings();
   $('msg').textContent = 'Loading…';
-  fetch(FILES_PATH + encodeURI(name))
+  fetch(GENEALOGY + encodeURI(name))
     .then((response) => {
       if (!response.ok) throw new Error(response.status);
       return response.text();
@@ -904,7 +909,7 @@ const readLocalFile = (file) => {
     $('selFile').value = name;
     settings.file = name;
     showText(text);
-    settings.file = FILES[0];
+    settings.file = DEFAULT_FILE;
   });
 };
 
@@ -1092,14 +1097,26 @@ const onSplitDblClick = (event) => {
 
 // ---------- Start ----------
 
+// ask GitHub for every .ged in the genealogy repo; keep the built-in list if that fails
+const listFiles = () => fetch(FILES_LIST)
+  .then((response) => response.ok ? response.json() : Promise.reject(response.status))
+  .then((data) => {
+    const found = data.tree.map((item) => item.path).filter((path) => /\.ged$/i.test(path)).sort();
+    if (found.length) FILES.splice(0, FILES.length, ...found);
+  })
+  .catch(() => { /* offline or rate-limited: keep the built-in list */ });
+
+const fillFileMenu = () => {
+  FILES.forEach((path) => $('selFile').add(new Option(path.replace(FILES_FOLDER, ''), path)));
+  if (!FILES.includes(settings.file)) settings.file = FILES.includes(DEFAULT_FILE) ? DEFAULT_FILE : FILES[0];
+  $('selFile').value = settings.file;
+};
+
 const init = () => {
   loadSettings();
-  if (!FILES.includes(settings.file)) settings.file = FILES[0];
   state.wiki = parseWiki();
   $('svgStyle').textContent = SVG_CSS;
 
-  FILES.forEach((name) => $('selFile').add(new Option(name, name)));
-  $('selFile').value = settings.file;
   $('selLayout').value = settings.layout;
   $('selColor').value = settings.color;
   $('selUp').value = settings.up;
@@ -1133,7 +1150,11 @@ const init = () => {
     $(id).addEventListener('dblclick', onSplitDblClick);
   });
 
-  loadFile(settings.file);
+  $('msg').textContent = 'Listing files…';
+  listFiles().then(() => {
+    fillFileMenu();
+    loadFile(settings.file);
+  });
 };
 
 init();

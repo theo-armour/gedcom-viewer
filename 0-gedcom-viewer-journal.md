@@ -2,6 +2,7 @@
 
 ## 2026-11-21
 
+* **Every GEDCOM file in the File menu** — on load the viewer asks GitHub for every `.ged` in the genealogy repo (10 today, up from 3), including the Fiverr and Wiki exports. Menu entries are repo paths, with `Online-Genealogy/gedcom-files/` left off. Falls back to the three built-in files if GitHub can't be reached
 * **Release 1.1.0** — Octocat link, title clean reload, biography links fixed and opening in a new tab. Version bumped in the `<meta name="version">` tag and the footer
 * **.gitignore** — `*.bak`, so `index.html.bak` stays on my computer
 * **Octocat link** — a GitHub Octocat icon before the title links to the source on GitHub. The header now reads Octocat, "GEDCOM Viewer", then 🌳
