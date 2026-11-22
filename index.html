@@ -224,13 +224,13 @@ const GENEALOGY = 'https://theo-armour.github.io/genealogy/';
 // GEDCOM files for the File menu: every .ged in the genealogy repo, listed by
 // GitHub when the page opens. Paths start at the top of the genealogy repo.
 const FILES_LIST = 'https://api.github.com/repos/theo-armour/genealogy/git/trees/main?recursive=1';
-const FILES_FOLDER = 'Online-Genealogy/gedcom-files/';   // left off the menu labels
-const DEFAULT_FILE = FILES_FOLDER + '2025-08-18-myheritage-armour.ged';
+const FILES_FOLDER = 'GEDCOM-files/';   // left off the menu labels
+const DEFAULT_FILE = FILES_FOLDER + '2025/2025-08-18-myheritage-armour.ged';
 // Offered if GitHub can't be reached; replaced by the full list when it can.
 const FILES = [
   DEFAULT_FILE,
-  FILES_FOLDER + '2025-08-23-carley-armour-family-tree.ged',
-  FILES_FOLDER + '2025-08-28-matthew-family-tree.ged'
+  FILES_FOLDER + '2025/2025-08-23-carley-armour-family-tree.ged',
+  FILES_FOLDER + '2025/2025-08-28-matthew-family-tree.ged'
 ];
 
 // Wiki folders: 'folder|page|photo'. Page defaults to 'README-' + folder (spaces as dashes) + '.md'.
