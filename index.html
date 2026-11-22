@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="revised" content="2026-11-21 19:58">
+<meta name="revised" content="2026-11-21 20:13">
 <meta name="version" content="1.1.0">
 <title>GEDCOM Viewer</title>
 <link rel="icon" href="favicon.ico">
@@ -156,6 +156,7 @@ footer { padding: 6px 16px 10px; color: var(--muted); font-size: 12.5px; }
   <div class="bar">
     <label>File <select id="selFile"></select></label>
     <label class="btn">📂 Open… <input type="file" id="inpFile" accept=".ged,.txt" hidden></label>
+    <button id="btnUrl" title="Load a GEDCOM file from a web address">🔗 URL…</button>
     <label>Layout
       <select id="selLayout">
         <option value="horizontal">Horizontal</option>
@@ -891,13 +892,13 @@ const loadFile = (name) => {
   settings.file = name;
   saveSettings();
   $('msg').textContent = 'Loading…';
-  fetch(GENEALOGY + encodeURI(name))
+  fetch(isUrl(name) ? name : GENEALOGY + encodeURI(name))
     .then((response) => {
       if (!response.ok) throw new Error(response.status);
       return response.text();
     })
     .then(showText)
-    .catch(() => { $('msg').textContent = `Could not load ${name}. Use 📂 Open… to pick a GEDCOM file.`; });
+    .catch(() => { $('msg').textContent = `Could not load ${name}. ${isUrl(name) ? "That site may not let other pages read its files — download it and use 📂 Open… instead." : "Use 📂 Open… to pick a GEDCOM file."}`; });
 };
 
 // a file picked or dropped by hand is read once; it is not remembered next time
@@ -980,7 +981,19 @@ const onSettingChange = () => {
 };
 
 const onFileChange = () => {
-  if (FILES.includes($('selFile').value)) loadFile($('selFile').value);
+  const name = $('selFile').value;
+  if (FILES.includes(name) || isUrl(name)) loadFile(name);
+};
+
+// a file from a web address: added to the File menu and remembered next time.
+// A github.com "blob" page link is turned into its raw file.
+const onUrlClick = () => {
+  const typed = (prompt('Web address of a GEDCOM file:') || '').trim();
+  if (!isUrl(typed)) return;
+  const url = typed.replace(/^https:\/\/github\.com\/([^/]+\/[^/]+)\/blob\//, 'https://raw.githubusercontent.com/$1/');
+  addUrlOption(url);
+  $('selFile').value = url;
+  loadFile(url);
 };
 
 // title: forget saved settings and start fresh on the default file
@@ -1106,9 +1119,17 @@ const listFiles = () => fetch(FILES_LIST)
   })
   .catch(() => { /* offline or rate-limited: keep the built-in list */ });
 
+const isUrl = (name) => /^https?:\/\//i.test(name);
+
+const addUrlOption = (url) => {
+  if ([...$('selFile').options].some((o) => o.value === url)) return;
+  $('selFile').add(new Option('🔗 ' + decodeURIComponent(url.split('/').pop() || url), url));
+};
+
 const fillFileMenu = () => {
   FILES.forEach((path) => $('selFile').add(new Option(path.replace(FILES_FOLDER, ''), path)));
-  if (!FILES.includes(settings.file)) settings.file = FILES.includes(DEFAULT_FILE) ? DEFAULT_FILE : FILES[0];
+  if (isUrl(settings.file)) addUrlOption(settings.file);
+  else if (!FILES.includes(settings.file)) settings.file = FILES.includes(DEFAULT_FILE) ? DEFAULT_FILE : FILES[0];
   $('selFile').value = settings.file;
 };
 
@@ -1125,6 +1146,7 @@ const init = () => {
 
   $('selFile').addEventListener('change', onFileChange);
   $('inpFile').addEventListener('change', onOpenFile);
+  $('btnUrl').addEventListener('click', onUrlClick);
   $('lnkTitle').addEventListener('click', onTitleClick);
   ['selLayout', 'selColor', 'selUp', 'selDown'].forEach((id) => $(id).addEventListener('change', onSettingChange));
   $('btnFit').addEventListener('click', fitView);

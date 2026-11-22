@@ -17,6 +17,8 @@ A family tree viewer for GEDCOM files, the standard export format of Ancestry, M
 
 Use **📂 Open…** or drag a `.ged` file onto the tree. The file is read in your browser and never leaves your computer.
 
+Or use **🔗 URL…** and paste the web address of a `.ged` file. It's added to the File menu and remembered next time. A GitHub file page link works too. Some sites don't let other pages read their files; for those, download the file and use 📂 Open….
+
 ## My family files
 
 The File menu opens the exports in my [genealogy repo](https://github.com/theo-armour/genealogy). People with a biography in my [family Wiki](https://theo-armour.github.io/genealogy/) are marked 📖 and link to their page.
