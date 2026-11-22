@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="revised" content="2026-11-21 17:21">
-<meta name="version" content="1.0.0">
+<meta name="revised" content="2026-11-21 19:51">
+<meta name="version" content="1.1.0">
 <title>GEDCOM Viewer</title>
 <link rel="icon" href="favicon.ico">
 <style>
@@ -52,6 +52,10 @@ body {
 }
 header { padding: 12px 16px 8px; }
 h1 { margin: 0; font: 600 24px/1.2 Georgia, "Times New Roman", serif; }
+h1 a { color: inherit; text-decoration: none; }
+h1 .gh { margin-right: 8px; color: var(--muted); }
+h1 .gh:hover { color: var(--ink); }
+h1 .gh svg { width: 20px; height: 20px; vertical-align: -1px; fill: currentColor; }
 .sub { margin: 2px 0 8px; color: var(--muted); }
 .bar { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
 .bar label { color: var(--muted); font-size: 13px; }
@@ -146,7 +150,7 @@ footer { padding: 6px 16px 10px; color: var(--muted); font-size: 12.5px; }
 <body>
 
 <header>
-  <h1>🌳 GEDCOM Viewer</h1>
+  <h1><a class="gh" href="https://github.com/theo-armour/gedcom-viewer" title="Source on GitHub" aria-label="Source on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a><a href="" id="lnkTitle" title="Start fresh with the default file">GEDCOM Viewer 🌳</a></h1>
   <p class="sub">Click a person to see their details and their line to the root. Double-click to make them the root. Drag to pan, scroll to zoom.</p>
   <div class="bar">
     <label>File <select id="selFile"></select></label>
@@ -206,7 +210,7 @@ footer { padding: 6px 16px 10px; color: var(--muted); font-size: 12.5px; }
 
 <footer>
   GEDCOM files stay exactly as exported — this page only reads them, and a file you open stays on your computer. 📖 marks a person with a page in the <a href="https://theo-armour.github.io/genealogy/index.html#Wiki/README.md">Armour family Wiki</a>.
-  · <a href="https://github.com/theo-armour/gedcom-viewer">Source on GitHub</a> · v1.0.0
+  · <a href="https://github.com/theo-armour/gedcom-viewer">Source on GitHub</a> · v1.1.0
 </footer>
 
 <script>
@@ -223,10 +227,11 @@ const FILES = [
   '2025-08-28-matthew-family-tree.ged'
 ];
 
-// Wiki folders: 'folder|page|photo'. Page defaults to folder name + '.md'.
+// Wiki folders: 'folder|page|photo'. Page defaults to 'README-' + folder (spaces as dashes) + '.md'.
 // Add a line here when a new person gets a Wiki folder.
 const WIKI_PATH = GENEALOGY + 'Wiki/';
-const WIKI_LINK = GENEALOGY + 'index.html#Wiki/';
+// ?owner&repo make TooToo browse the genealogy repo, whatever it last opened.
+const WIKI_LINK = GENEALOGY + 'index.html?owner=theo-armour&repo=genealogy#Wiki/';
 const WIKI = [
   'Albert-Cameron-Burrage-III-1919-1944',
   'Albert-Cameron-Burrage-Jr-1886-1978',
@@ -261,13 +266,13 @@ const WIKI = [
   'Nikolai-Alexandrovich-Kudashev-1868-1925',
   'Nikolay-Danilovich-Kudashev-1784-1813||images/nikolay-kudashev.jpg',
   'Norman-Armour-Jr-1920-1978',
-  'Norman-Armour-Sr-1887-1982||norman-armour.jpg',
-  'Norman-Theo-Armour-III-1947-',
+  'Norman-Armour-Sr-1887-1982||images/norman-armour.jpg',
+  'Norman-Theo-Armour-III-1947-|Norman-Theo-Armour-III-1947-.md',
   'Olga-Ericovna-von-Pistohlkors-1888-1963|README-Olga-Ericovna-von-Pistohlkors-1888-1963.md',
   'Olga-Valerianovna-Paley-1865-1929|README-Olga-Valerianovna-Paley-1865-1929.md|images/1890s-olga-paley-portrait.jpg',
   'Sergei-Danilovich-Kudashev-1795-1862|README-Sergei-Danilovich-Kudashev-1795-1862.md',
   'Sergei-Sergeyevich-Kudashev-1901-1991',
-  'Sergei-Vladimirovich-Kudashev-1863-1933|0-Sergei-Vladimirovich-Kudashev-1863-1933.md|images/1903-ball-sergei-kudashev.jpeg',
+  'Sergei-Vladimirovich-Kudashev-1863-1933||images/1903-ball-sergei-kudashev.jpeg',
   'Vera-Maximilianovna-Kudasheva-von-Nieroth-1874-1920||images/1900~-unknown-vera-von-neiroth.jpg',
   'Vladimir Fyodorovich Trepov-1863-1918||images/1903-ball-vladimir-trepov.jpg',
   'Vladimir-Sergeyevich-Kudashev-1833-1871',
@@ -432,7 +437,7 @@ const parseWiki = () => WIKI.map((row) => {
   const m = folder.match(/^(.*)-(\d{4})-(\d{4})?$/) || ['', folder, '', ''];
   return {
     folder, photo: photo || '',
-    page: page || folder + '.md',
+    page: page || 'README-' + folder.replace(/ /g, '-') + '.md',
     keys: nameKeys(m[1]), birth: m[2], death: m[3] || ''
   };
 });
@@ -819,7 +824,7 @@ const renderDetails = () => {
   const w = p.wiki;
   const wikiHtml = w
     ? (w.photo ? `<figure><img src="${esc(encodeURI(WIKI_PATH + w.folder + '/' + w.photo))}" alt=""></figure>` : '') +
-      `<p>📖 <a href="${esc(encodeURI(WIKI_LINK + w.folder + '/' + w.page))}">Biography: ${esc(w.folder)}</a></p>`
+      `<p>📖 <a href="${esc(encodeURI(WIKI_LINK + w.folder + '/' + w.page))}" target="_blank" rel="noopener">Biography: ${esc(w.folder)}</a></p>`
     : '';
   const notes = kids(p.node, 'NOTE').map((n) => resolve(n).value).filter(Boolean);
   const events = eventRows(p.node);
@@ -973,6 +978,13 @@ const onFileChange = () => {
   if (FILES.includes($('selFile').value)) loadFile($('selFile').value);
 };
 
+// title: forget saved settings and start fresh on the default file
+const onTitleClick = (event) => {
+  event.preventDefault();
+  try { localStorage.removeItem(STORAGE_KEY); } catch (err) { /* storage unavailable */ }
+  location.reload();
+};
+
 const onOpenFile = (event) => readLocalFile(event.target.files[0]);
 
 const onDrop = (event) => {
@@ -1096,6 +1108,7 @@ const init = () => {
 
   $('selFile').addEventListener('change', onFileChange);
   $('inpFile').addEventListener('change', onOpenFile);
+  $('lnkTitle').addEventListener('click', onTitleClick);
   ['selLayout', 'selColor', 'selUp', 'selDown'].forEach((id) => $(id).addEventListener('change', onSettingChange));
   $('btnFit').addEventListener('click', fitView);
   $('btnSvg').addEventListener('click', saveSvg);
