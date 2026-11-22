@@ -26,3 +26,10 @@ To add an export, put it in `Online-Genealogy/gedcom-files/` in the genealogy re
 ## How it's made
 
 One file, `index.html`: plain HTML, CSS and JavaScript, no libraries, no build step. Hosted on GitHub Pages.
+
+## Changelog
+
+### 2026-11-21
+
+* Release 1.0.0 — first release, after moving the viewer out of the genealogy repo
+* Panel layout and resizing
