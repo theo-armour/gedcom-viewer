@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="revised" content="2026-11-21 16:00">
+<meta name="revised" content="2026-11-21 16:30">
 <title>GEDCOM Viewer</title>
 <link rel="icon" href="favicon.ico">
 <style>
@@ -63,9 +63,19 @@ button:hover, .btn:hover { border-color: var(--muted); }
 .bar .btn { color: var(--ink); font-size: 14px; }
 
 main {
-  flex: 1; min-height: 0; display: grid; gap: var(--gap);
-  grid-template-columns: 240px 1fr 330px; padding: 0 16px;
+  flex: 1; min-height: 0; display: grid;
+  grid-template-columns: var(--left, 240px) var(--gap) 1fr var(--gap) var(--right, 330px);
+  padding: 0 16px;
 }
+/* the two panel separators: drag to resize, double-click to reset */
+.split { position: relative; cursor: col-resize; touch-action: none; }
+.split::after {
+  content: ""; position: absolute; top: 0; bottom: 0; left: calc(50% - 1.5px);
+  width: 3px; border-radius: 2px;
+}
+.split:hover::after { background: var(--border); }
+.split.active::after { background: var(--hl); }
+body.resizing { cursor: col-resize; user-select: none; }
 aside {
   background: var(--card); border: 1px solid var(--border); border-radius: 8px;
   padding: 10px; overflow-y: auto; min-height: 0;
@@ -119,12 +129,13 @@ footer { padding: 6px 16px 10px; color: var(--muted); font-size: 12.5px; }
 
 @media (max-width: 900px) {
   html, body { height: auto; }
-  main { grid-template-columns: 1fr; }
+  main { grid-template-columns: 1fr; gap: var(--gap); }
+  .split { display: none; }
   #stage { height: 70vh; }
   aside { max-height: 50vh; }
 }
 @media print {
-  .bar, aside, footer, .sub { display: none; }
+  .bar, aside, .split, footer, .sub { display: none; }
   main { display: block; padding: 0; }
   #stage { border: 0; height: 90vh; }
 }
@@ -179,11 +190,15 @@ footer { padding: 6px 16px 10px; color: var(--muted); font-size: 12.5px; }
     <ul id="list"></ul>
   </aside>
 
+  <div class="split" id="splitLeft" title="Drag to resize · double-click to reset"></div>
+
   <section id="stage">
     <svg id="tree" class="gv"><g id="viewport"></g></svg>
     <p id="msg"></p>
     <ul class="legend" id="legend"></ul>
   </section>
+
+  <div class="split" id="splitRight" title="Drag to resize · double-click to reset"></div>
 
   <aside id="details"></aside>
 </main>
@@ -265,8 +280,13 @@ const settings = {
   color: 'branch',
   up: 4,
   down: 2,
+  left: 240,         // width of the people panel, in pixels
+  right: 330,        // width of the details panel
   roots: {}          // remembered root person per file
 };
+
+const PANEL_DEFAULTS = { left: 240, right: 330 };
+const PANEL_MIN = 140;
 
 const state = {
   records: {},       // every level-0 GEDCOM record by id
@@ -278,7 +298,8 @@ const state = {
   selectedId: null,
   view: { x: 0, y: 0, k: 1 },
   bounds: { minX: 0, minY: 0, maxX: 1, maxY: 1 },
-  drag: null
+  drag: null,
+  split: null        // the panel separator being dragged
 };
 
 const STORAGE_KEY = 'gedcomViewerSettings';
@@ -1011,6 +1032,51 @@ const onWheel = (event) => {
   applyView();
 };
 
+// ---------- Panel separators ----------
+
+const applyPanelWidths = () => {
+  const main = document.querySelector('main');
+  main.style.setProperty('--left', settings.left + 'px');
+  main.style.setProperty('--right', settings.right + 'px');
+};
+
+const sideOf = (el) => (el.id === 'splitLeft' ? 'left' : 'right');
+
+const onSplitDown = (event) => {
+  const el = event.currentTarget;
+  state.split = { side: sideOf(el), x: event.clientX, width: settings[sideOf(el)] };
+  el.setPointerCapture(event.pointerId);
+  el.classList.add('active');
+  document.body.classList.add('resizing');
+};
+
+// each panel keeps at least PANEL_MIN pixels and leaves the tree at least a third of the window
+const onSplitMove = (event) => {
+  const s = state.split;
+  if (!s) return;
+  const dx = event.clientX - s.x;
+  const width = s.side === 'left' ? s.width + dx : s.width - dx;
+  const other = s.side === 'left' ? settings.right : settings.left;
+  const max = window.innerWidth * 2 / 3 - other;
+  settings[s.side] = Math.round(Math.max(PANEL_MIN, Math.min(max, width)));
+  applyPanelWidths();
+};
+
+const onSplitUp = (event) => {
+  if (!state.split) return;
+  state.split = null;
+  event.currentTarget.classList.remove('active');
+  document.body.classList.remove('resizing');
+  saveSettings();
+};
+
+const onSplitDblClick = (event) => {
+  const side = sideOf(event.currentTarget);
+  settings[side] = PANEL_DEFAULTS[side];
+  applyPanelWidths();
+  saveSettings();
+};
+
 // ---------- Start ----------
 
 const init = () => {
@@ -1025,6 +1091,7 @@ const init = () => {
   $('selColor').value = settings.color;
   $('selUp').value = settings.up;
   $('selDown').value = settings.down;
+  applyPanelWidths();
 
   $('selFile').addEventListener('change', onFileChange);
   $('inpFile').addEventListener('change', onOpenFile);
@@ -1044,6 +1111,13 @@ const init = () => {
   $('tree').addEventListener('wheel', onWheel, { passive: false });
   $('stage').addEventListener('dragover', onDragOver);
   $('stage').addEventListener('drop', onDrop);
+  ['splitLeft', 'splitRight'].forEach((id) => {
+    $(id).addEventListener('pointerdown', onSplitDown);
+    $(id).addEventListener('pointermove', onSplitMove);
+    $(id).addEventListener('pointerup', onSplitUp);
+    $(id).addEventListener('pointercancel', onSplitUp);
+    $(id).addEventListener('dblclick', onSplitDblClick);
+  });
 
   loadFile(settings.file);
 };
