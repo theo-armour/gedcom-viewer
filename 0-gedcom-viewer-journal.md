@@ -2,6 +2,7 @@
 
 ## 2026-11-22
 
+* **Release 1.2.0** — version bumped in the `<meta name="version">` tag and the footer, changelog added to the README, tagged `v1.2.0`. Cleared the four finished items from the agenda
 * **Footer** — dropped the sentence about 📖 and the Armour family Wiki; the footer now has only the note on files, the GitHub link and the version
 * **Load files from the READMEs** — in the reader, a link to a GEDCOM file that's in the File menu gets a 🌳 and opens that file in the viewer, closing the reader. So do the samples in the sample files README and the master tree in the GEDCOM files README. Links to other `.ged` files, such as the 2025 exports, stay plain links, so the File menu remains the only list of files the viewer opens
 * **📄 Read me… menu** — a toolbar menu opens the viewer's README, the sample files README and the genealogy repo's GEDCOM files README in the biography reader. The reader now reads Markdown from both GitHub Pages sites: "Open ↗" goes to TooToo for genealogy pages and to GitHub for viewer pages, and folder links in the viewer repo go to the folder on GitHub

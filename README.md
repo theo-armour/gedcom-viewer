@@ -9,6 +9,7 @@ A family tree viewer for GEDCOM files, the standard export format of Ancestry, M
 * Draws a tree around one person: horizontal, vertical or a fan chart of ancestors
 * Colors each of the four grandparent branches, or male and female
 * Click a person to see their facts, family, notes, pictures and sources, and their line back to the root. Double-click to make them the root
+* Reads a person's Wiki biography in a panel over the tree, and the READMEs from the 📄 Read me… menu
 * Search everyone in the file
 * Drag to pan, scroll to zoom
 * Saves the drawing as SVG or PNG, or prints it to PDF
@@ -33,7 +34,19 @@ One file, `index.html`: plain HTML, CSS and JavaScript, no libraries, no build s
 
 ## Changelog
 
+### 2026-11-22
+
+* Release 1.2.0
+* Opens the master tree from the genealogy repo, `GEDCOM-files/armour-genealogy.ged`. It's the only family file in the menu; the online-service exports are left out for privacy
+* Six sample trees: Brontë, Gramps, Kennedy, US presidents, Royal92 and Shakespeare
+* Biography links read from the file (`REFN` of `TYPE Wiki`), falling back to matching by years
+* Biography reader: Wiki pages open over the tree, with links between them and ← Back
+* 📄 Read me… menu for the viewer, sample files and GEDCOM files READMEs; sample file links in them open in the viewer
+* Shorter footer
+
 ### 2026-11-21
+
+* Release 1.1.0 — Octocat link, title clean reload, biography links fixed and opening in a new tab, load by URL
 
 * Release 1.0.0 — first release, after moving the viewer out of the genealogy repo
 * Panel layout and resizing
