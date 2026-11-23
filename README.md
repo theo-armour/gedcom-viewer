@@ -44,11 +44,11 @@ One file, `index.html`: plain HTML, CSS and JavaScript, no libraries, no build s
 * Biography reader: Wiki pages open over the tree, with links between them and ← Back
 * 📄 Read me… menu for the viewer, sample files and GEDCOM files READMEs; sample file links in them open in the viewer
 * Full screen tree: ⛶ button or F key, Esc to leave
+* Opens in the fan layout by default
 * Shorter footer
 
 ### 2026-11-21
 
 * Release 1.1.0 — Octocat link, title clean reload, biography links fixed and opening in a new tab, load by URL
-
 * Release 1.0.0 — first release, after moving the viewer out of the genealogy repo
 * Panel layout and resizing

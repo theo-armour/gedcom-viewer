@@ -2,6 +2,7 @@
 
 ## 2026-11-22
 
+* **Fan by default** — the viewer now opens in the Fan (ancestors) layout. A layout chosen earlier is still remembered; clicking the title starts fresh in the fan
 * **Full screen** — a ⛶ button at the top right of the tree, or the F key, makes the tree fill the screen; the tree refits to the new size, and Esc or ✕ leaves. Hidden where the browser can't do it, such as iPhone Safari. Added to release 1.2.0 before it was pushed: the `v1.2.0` tag was moved to the new commit
 * **Release 1.2.0** — version bumped in the `<meta name="version">` tag and the footer, changelog added to the README, tagged `v1.2.0`. Cleared the four finished items from the agenda
 * **Footer** — dropped the sentence about 📖 and the Armour family Wiki; the footer now has only the note on files, the GitHub link and the version
