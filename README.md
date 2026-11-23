@@ -13,7 +13,9 @@ A family tree viewer for GEDCOM files, the standard export format of Ancestry, M
 * Search everyone in the file
 * Drag to pan, scroll to zoom
 * Full screen: the ⛶ button at the tree's top right, or the F key, shows the tree alone; Esc leaves
-* Saves the drawing as SVG or PNG, or prints it to PDF
+* Shows Wiki portraits in the tree boxes and the fan
+* Links that open the tree on a person, e.g. `#wiki=Ida-Watkins-Shirk-1864-1951` or `#root=@I08@`, with `&layout=` and `&file=` if wanted; "🔗 Copy link" in the details panel makes one
+* Saves the drawing as SVG or PNG (portraits included), or prints it to PDF
 
 ## Your own file
 
@@ -44,6 +46,8 @@ One file, `index.html`: plain HTML, CSS and JavaScript, no libraries, no build s
 * Biography reader: Wiki pages open over the tree, with links between them and ← Back
 * 📄 Read me… menu for the viewer, sample files and GEDCOM files READMEs; sample file links in them open in the viewer
 * Full screen tree: ⛶ button or F key, Esc to leave
+* Wiki portraits in the tree and fan, included in SVG and PNG saves
+* Links that open the tree on a person (`#wiki=…`, `#root=…`), and a 🔗 Copy link button
 * Opens in the fan layout by default
 * Shorter footer
 

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="revised" content="2026-11-22 20:10">
+<meta name="revised" content="2026-11-22 20:40">
 <meta name="version" content="1.2.0">
 <title>GEDCOM Viewer</title>
 <link rel="icon" href="favicon.ico">
@@ -601,6 +601,23 @@ const nodeClasses = (n, hl) => [
 
 const BOX_W = 190;
 const BOX_H = 44;
+const PHOTO = 34;      // portrait size in a tree box
+
+// ---------- Portraits ----------
+// People with a Wiki photo get a round portrait. One clip path serves every
+// portrait: it's sized to each image's own box (objectBoundingBox).
+
+const photoUrl = (p) => (p.wiki && p.wiki.photo ? encodeURI(WIKI_PATH + p.wiki.folder + '/' + p.wiki.photo) : '');
+
+const PHOTO_DEFS = '<defs><clipPath id="clipPhoto" clipPathUnits="objectBoundingBox"><circle cx="0.5" cy="0.5" r="0.5"/></clipPath></defs>';
+
+// a round portrait centred on cx, cy
+const portraitSvg = (url, cx, cy, size) => {
+  const x = (cx - size / 2).toFixed(1), y = (cy - size / 2).toFixed(1);
+  return `<image class="photo" href="${esc(url)}" x="${x}" y="${y}" width="${size}" height="${size}" ` +
+    `preserveAspectRatio="xMidYMid slice" clip-path="url(#clipPhoto)"/>` +
+    `<circle class="photo-ring" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${size / 2}"/>`;
+};
 
 const drawTree = () => {
   const vertical = settings.layout === 'vertical';
@@ -639,19 +656,24 @@ const drawTree = () => {
 
   const nodeSvg = (n) => {
     const p = state.people[n.id];
+    const photo = photoUrl(p);
+    // a portrait stands in for the 📖 mark, and leaves less room for the name
+    const mark = photo
+      ? portraitSvg(photo, BOX_W - 6 - PHOTO / 2, BOX_H / 2, PHOTO)
+      : p.wiki ? `<text class="yr" x="${BOX_W - 22}" y="34">📖</text>` : '';
     return `<g class="${nodeClasses(n, hl)}" data-id="${esc(p.id)}" transform="translate(${n.x},${n.y})">
       <title>${esc(p.name)} ${esc(p.life)}</title>
       <rect class="box" width="${BOX_W}" height="${BOX_H}" rx="5"/>
       <rect class="stripe" width="5" height="${BOX_H}" rx="2"/>
-      <text class="nm" x="13" y="18">${esc(clip(p.name, 26))}</text>
+      <text class="nm" x="13" y="18">${esc(clip(p.name, photo ? 21 : 26))}</text>
       <text class="yr" x="13" y="34">${esc(p.life)}</text>
-      ${p.wiki ? `<text class="yr" x="${BOX_W - 22}" y="34">📖</text>` : ''}
+      ${mark}
     </g>`;
   };
 
   // plain links first, highlighted links on top, then the boxes
   const links = nodes.filter((n) => n.up);
-  const svg = links.filter((n) => !hl.has(n.key)).map(linkSvg).join('') +
+  const svg = PHOTO_DEFS + links.filter((n) => !hl.has(n.key)).map(linkSvg).join('') +
     links.filter((n) => hl.has(n.key)).map(linkSvg).join('') +
     nodes.map(nodeSvg).join('');
 
@@ -667,6 +689,7 @@ const drawTree = () => {
 
 const FAN_R0 = 64;     // radius of the root circle
 const FAN_RW = 120;    // width of each generation ring
+const FAN_PHOTO = 44;  // portrait size in a fan sector
 
 const drawFan = () => {
   const nodes = flatten(buildUp(state.rootId, 0, 1, null));
@@ -689,6 +712,13 @@ const drawFan = () => {
     // wide sectors: text runs along the ring. narrow sectors: text runs outward.
     const along = arc >= 90;
     const turn = along ? deg(am) + 90 : deg(am) + (am < Math.PI * 1.5 ? 180 : 0);
+
+    // a portrait goes in the outer part of a sector wide enough for it, upright; the text moves in
+    const photo = photoUrl(p);
+    const rp = r1 - FAN_PHOTO / 2 - 8;
+    const withPhoto = photo && along && rp * (a1 - a0) >= FAN_PHOTO + 8;
+    const rt = withPhoto ? r0 + 40 : rm;
+    const [px, py] = [rp * Math.cos(am), rp * Math.sin(am)];
     const room = along ? Math.floor(arc / 6.6) : Math.floor((FAN_RW - 12) / 5.8);
     const oneLine = !along && arc < 26;
     const label = oneLine
@@ -699,7 +729,8 @@ const drawFan = () => {
     return `<g class="${nodeClasses(n, hl)}" data-id="${esc(p.id)}">
       <title>${esc(p.name)} ${esc(p.life)}</title>
       <path class="sect" d="${path}"/>
-      <text class="yr fan" transform="translate(${pt(rm, am)}) rotate(${turn.toFixed(1)})">${label}</text>
+      <text class="yr fan" transform="translate(${pt(rt, am)}) rotate(${turn.toFixed(1)})">${label}</text>
+      ${withPhoto ? portraitSvg(photo, px, py, FAN_PHOTO) : ''}
     </g>`;
   };
 
@@ -714,7 +745,7 @@ const drawFan = () => {
 
   const r = FAN_R0 + settings.up * FAN_RW;
   return {
-    svg: nodes.slice(1).map(sectorSvg).join('') + rootSvg,
+    svg: PHOTO_DEFS + nodes.slice(1).map(sectorSvg).join('') + rootSvg,
     bounds: { minX: -r, minY: -r, maxX: r, maxY: FAN_R0 }
   };
 };
@@ -742,6 +773,7 @@ const SVG_CSS = `
 .gv .hl .sect { fill-opacity: 0.5; }
 .gv .sel .box { stroke: var(--hl); stroke-width: 3; }
 .gv .sel .sect { fill-opacity: 0.7; stroke: var(--hl); stroke-width: 2.5; }
+.gv .photo-ring { fill: none; stroke: currentColor; stroke-width: 1.5; }
 `;
 
 const applyView = () => {
@@ -937,6 +969,7 @@ const renderDetails = () => {
     <h2>${esc(p.name)}</h2>
     <p class="life">${esc(p.life)}${p.sex === 'M' ? ' · male' : p.sex === 'F' ? ' · female' : ''}</p>
     ${p.id === state.rootId ? '' : `<button class="btn" data-id="${esc(p.id)}">🎯 Make root</button>`}
+    ${personLink(p) ? `<button class="btn" data-copylink="${esc(personLink(p))}" title="Copy a link that opens the tree on this person">🔗 Copy link</button>` : ''}
     ${wikiHtml}
     ${events ? `<h3>Facts</h3><table>${events}</table>` : ''}
     <h3>Family</h3>${familyHtml(p) || '<p class="rel">No relatives recorded.</p>'}
@@ -1194,6 +1227,71 @@ const selectPerson = (id) => {
   renderDetails();
 };
 
+// ---------- Links to a person ----------
+// The address can open the tree on someone:
+//   #wiki=Ida-Watkins-Shirk-1864-1951   the person whose Wiki folder this is (sturdiest: survives GEDCOM ids changing)
+//   #root=@I08@                          a GEDCOM id
+// plus, optionally, &layout=fan|horizontal|vertical and &file=<a File menu entry>.
+
+const LAYOUTS = ['horizontal', 'vertical', 'fan'];
+
+const readLink = () => {
+  const q = new URLSearchParams(location.hash.slice(1));
+  const link = { root: q.get('root') || '', wiki: q.get('wiki') || '', file: q.get('file') || '', layout: q.get('layout') || '' };
+  return link.root || link.wiki || link.file || link.layout ? link : null;
+};
+
+const applyLinkSettings = (link) => {
+  if (LAYOUTS.includes(link.layout)) settings.layout = link.layout;
+  if (link.file && FILES.includes(link.file)) settings.file = link.file;   // only files in the menu
+};
+
+const linkedPerson = (link) => {
+  if (!link) return '';
+  if (link.root && state.people[link.root]) return link.root;
+  const p = link.wiki && Object.values(state.people).find((x) => x.wiki && x.wiki.folder === link.wiki);
+  return p ? p.id : '';
+};
+
+const linkPart = (s) => encodeURIComponent(s).replace(/%40/g, '@');
+
+// a link that reopens the tree on this person, or '' for a file the menu can't reopen
+const personLink = (p) => {
+  if (!FILES.includes(settings.file)) return '';
+  const page = location.protocol.startsWith('http') ? location.origin + location.pathname : VIEWER;
+  const parts = [p.wiki ? 'wiki=' + linkPart(p.wiki.folder) : 'root=' + linkPart(p.id)];
+  if (settings.file !== DEFAULT_FILE) parts.push('file=' + linkPart(settings.file));
+  parts.push('layout=' + settings.layout);
+  return page + '#' + parts.join('&');
+};
+
+const onCopyLink = (event) => {
+  const el = event.target.closest('[data-copylink]');
+  if (!el) return;
+  const url = el.dataset.copylink;
+  const done = () => { el.textContent = '✓ Copied'; setTimeout(() => { el.textContent = '🔗 Copy link'; }, 1600); };
+  if (navigator.clipboard) navigator.clipboard.writeText(url).then(done).catch(() => window.prompt('Copy this link:', url));
+  else window.prompt('Copy this link:', url);
+};
+
+// a link followed while the page is open (e.g. pasted into the address bar)
+const onHashChange = () => {
+  const link = readLink();
+  if (!link) return;
+  const before = settings.file;
+  applyLinkSettings(link);
+  $('selLayout').value = settings.layout;
+  saveSettings();
+  if (settings.file !== before) {
+    state.link = link;
+    $('selFile').value = settings.file;
+    loadFile(settings.file);
+    return;
+  }
+  const id = linkedPerson(link);
+  if (id) setRoot(id); else render(true);
+};
+
 const setRoot = (id) => {
   state.rootId = id;
   state.selectedId = id;
@@ -1215,8 +1313,10 @@ const showText = (text) => {
     return;
   }
   const saved = settings.roots[settings.file];
+  const linked = linkedPerson(state.link);   // a person named in the address wins, once
+  state.link = null;
   renderList();
-  setRoot(state.people[saved] ? saved : state.order[0]);
+  setRoot(linked || (state.people[saved] ? saved : state.order[0]));
 };
 
 const loadFile = (name) => {
@@ -1275,14 +1375,46 @@ const download = (blob, name) => {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
 
+// portraits are written into the export as data, so the file stands alone
+// and the PNG (drawn from an SVG image, which can't fetch anything) shows them
+const toDataUrl = (url) => fetch(url)
+  .then((response) => (response.ok ? response.blob() : Promise.reject(response.status)))
+  .then((blob) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  }));
+
+const embedPhotos = (svg) => {
+  const urls = [...new Set([...svg.matchAll(/<image class="photo" href="([^"]+)"/g)].map((m) => m[1]))];
+  if (!urls.length) return Promise.resolve(svg);
+  $('msg').textContent = 'Adding portraits…';
+  const unescape = (s) => s.replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+  return Promise.all(urls.map((u) => toDataUrl(unescape(u)).catch(() => '')))
+    .then((data) => {
+      $('msg').textContent = settings.layout === 'fan' ? 'The fan shows ancestors only.' : '';
+      // a portrait that couldn't be fetched is left out rather than left broken
+      return urls.reduce((out, u, i) => out.split(`href="${u}"`).join(data[i] ? `href="${data[i]}"` : 'href=""'), svg);
+    });
+};
+
+const exportWithPhotos = () => {
+  const out = exportSvg();
+  return embedPhotos(out.svg).then((svg) => ({ ...out, svg }));
+};
+
 const saveSvg = () => {
   if (!state.rootId) return;
-  download(new Blob([exportSvg().svg], { type: 'image/svg+xml' }), exportName('svg'));
+  exportWithPhotos().then(({ svg }) => download(new Blob([svg], { type: 'image/svg+xml' }), exportName('svg')));
 };
 
 const savePng = () => {
   if (!state.rootId) return;
-  const { svg, w, h } = exportSvg();
+  exportWithPhotos().then(drawPng);
+};
+
+const drawPng = ({ svg, w, h }) => {
   const scale = Math.min(2, 8000 / Math.max(w, h));   // stay inside canvas size limits
   const img = new Image();
   img.addEventListener('load', () => {
@@ -1331,6 +1463,7 @@ const onUrlClick = () => {
 const onTitleClick = (event) => {
   event.preventDefault();
   try { localStorage.removeItem(STORAGE_KEY); } catch (err) { /* storage unavailable */ }
+  history.replaceState(null, '', location.pathname + location.search);   // drop any #wiki=… link too
   location.reload();
 };
 
@@ -1457,6 +1590,8 @@ const fillFileMenu = () => {
 
 const init = () => {
   loadSettings();
+  state.link = readLink();
+  if (state.link) applyLinkSettings(state.link);
   state.wiki = parseWiki();
   $('svgStyle').textContent = SVG_CSS;
 
@@ -1486,6 +1621,8 @@ const init = () => {
   $('list').addEventListener('click', onPersonClick);
   $('details').addEventListener('click', onPersonClick);
   $('details').addEventListener('click', onBioClick);
+  $('details').addEventListener('click', onCopyLink);
+  window.addEventListener('hashchange', onHashChange);
   $('reader').addEventListener('click', onReaderClick);
   $('btnReaderBack').addEventListener('click', onReaderBack);
   fillReadmeMenu();

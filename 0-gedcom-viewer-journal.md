@@ -2,6 +2,8 @@
 
 ## 2026-11-22
 
+* **Portraits in the tree** — people with a Wiki photo get a round portrait in their tree box (in place of the 📖 mark) and in fan sectors wide enough for one, upright in the outer part of the ring. Saved SVG and PNG files have the portraits written into them, so they stand alone
+* **Links to a person** — an address like `#wiki=Ida-Watkins-Shirk-1864-1951` or `#root=@I08@`, optionally with `&layout=` and `&file=` (File menu entries only), opens the tree on that person. "🔗 Copy link" in the details panel makes one; it uses the Wiki folder when there is one, since GEDCOM ids can change. Clicking the title drops the link along with the saved settings. Checked in headless Edge: Ida opens in the fan with 3 portraits, Maria Kudasheva in the horizontal tree with 8
 * **Fan by default** — the viewer now opens in the Fan (ancestors) layout. A layout chosen earlier is still remembered; clicking the title starts fresh in the fan
 * **Full screen** — a ⛶ button at the top right of the tree, or the F key, makes the tree fill the screen; the tree refits to the new size, and Esc or ✕ leaves. Hidden where the browser can't do it, such as iPhone Safari. Added to release 1.2.0 before it was pushed: the `v1.2.0` tag was moved to the new commit
 * **Release 1.2.0** — version bumped in the `<meta name="version">` tag and the footer, changelog added to the README, tagged `v1.2.0`. Cleared the four finished items from the agenda
