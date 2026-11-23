@@ -2,6 +2,7 @@
 
 ## 2026-11-22
 
+* **Release 1.2.0 live** — pushed with the `v1.2.0` tag, viewer first and then the genealogy repo, whose 55 biographies now link here with `#wiki=<folder>`. GitHub Pages serves version 1.2.0. Still to try by hand on the live site: saving an SVG and a PNG to check the portraits are embedded, and following a biography's "See in the family tree" link
 * **Portraits in the tree** — people with a Wiki photo get a round portrait in their tree box (in place of the 📖 mark) and in fan sectors wide enough for one, upright in the outer part of the ring. Saved SVG and PNG files have the portraits written into them, so they stand alone
 * **Links to a person** — an address like `#wiki=Ida-Watkins-Shirk-1864-1951` or `#root=@I08@`, optionally with `&layout=` and `&file=` (File menu entries only), opens the tree on that person. "🔗 Copy link" in the details panel makes one; it uses the Wiki folder when there is one, since GEDCOM ids can change. Clicking the title drops the link along with the saved settings. Checked in headless Edge: Ida opens in the fan with 3 portraits, Maria Kudasheva in the horizontal tree with 8
 * **Fan by default** — the viewer now opens in the Fan (ancestors) layout. A layout chosen earlier is still remembered; clicking the title starts fresh in the fan
