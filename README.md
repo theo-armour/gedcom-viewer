@@ -21,9 +21,9 @@ Or use **🔗 URL…** and paste the web address of a `.ged` file. It's added to
 
 ## My family files
 
-The File menu opens the exports in my [genealogy repo](https://github.com/theo-armour/genealogy). People with a biography in my [family Wiki](https://theo-armour.github.io/genealogy/) are marked 📖 and link to their page.
+The File menu opens the master tree in my [genealogy repo](https://github.com/theo-armour/genealogy), `GEDCOM-files/2026/2026-11-22-armour-genealogy.ged`. It's the only family file offered, because the online-service exports hold details of living people. People with a biography in my [family Wiki](https://theo-armour.github.io/genealogy/) are marked 📖 and link to their page.
 
-The menu lists every `.ged` file in the genealogy repo, found through GitHub when the page opens, so a new export shows up as soon as it's pushed. If GitHub can't be reached, the menu falls back to the files listed in `FILES` in `index.html`. To add a biography, add a line to `WIKI`.
+The menu also has two sample files from [sample-ged-files/](sample-ged-files/): the Kennedy family (from [chronoplexsoftware.com](https://chronoplexsoftware.com/myfamilytree/), unzipped from `The Kennedy Family.gdz`, GEDCOM 7.0) and Shakespeare (from [webtreeprint.com](https://webtreeprint.com/)). The menu is the `FILES` list in `index.html`. To add a biography, add a line to `WIKI`.
 
 ## How it's made
 

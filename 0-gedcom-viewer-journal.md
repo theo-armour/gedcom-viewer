@@ -1,5 +1,13 @@
 # GEDCOM Viewer Journal
 
+## 2026-11-22
+
+* **Only the master tree** — for privacy, the File menu no longer lists every `.ged` in the genealogy repo; the GitHub file listing is gone. The menu now holds the 2026 master tree and the samples
+* **Sample files** — added `sample-ged-files/kennedy.ged` (Chronoplex's Kennedy sample, unzipped from its `.gdz`; GEDCOM 7.0, 70 people) to sit beside `shakespeare.ged` (same as the current webtreeprint.com download). Both are in the menu as "sample: …" and load from beside the page. Maria Skłodowska-Curie isn't a file: Topola reads her straight from the WikiTree API
+* **New default file** — the viewer now opens on the hand-maintained master tree, `GEDCOM-files/2026/2026-11-22-armour-genealogy.ged`, starting from me. The MyHeritage export stays in the fallback File menu
+* **Ten new biographies linked** — added the great- and great-great-grandparents with new Wiki pages to the Wiki list: Aurelia Chamberlin Burrage, Barbara Allison Armour, Erastus Foote Jr, George Claiborne Watkins, Harriette Cobb Foote Armour, Ida Watkins Shirk, Mary W. Marshall Shirk, Olga Nikolaevna Kudasheva, Sarah Page Wood Foote and Sophia Fulton Watkins. None has a photo yet. The list now has 55 entries
+* **GEDCOM file paths** — the genealogy repo moved its GEDCOM files from `Online-Genealogy/gedcom-files/` to `GEDCOM-files/2025/`. The default file and the three fallback files now point there, and menu labels leave off `GEDCOM-files/`
+
 ## 2026-11-21
 
 * **Load by URL** — a 🔗 URL… button loads a GEDCOM file from any web address that allows it. GitHub `blob` page links are turned into raw file links. The URL is added to the File menu and remembered next time. Local files still open with 📂 Open… or by dragging onto the tree
