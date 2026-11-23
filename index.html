@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="revised" content="2026-11-22 19:45">
+<meta name="revised" content="2026-11-22 20:00">
 <meta name="version" content="1.2.0">
 <title>GEDCOM Viewer</title>
 <link rel="icon" href="favicon.ico">
@@ -92,6 +92,10 @@ aside {
 }
 #tree { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
 #tree.dragging { cursor: grabbing; }
+#btnFull { position: absolute; right: 8px; top: 8px; font-size: 16px; line-height: 1; padding: 5px 7px; opacity: 0.8; }
+#btnFull:hover { opacity: 1; }
+#stage:fullscreen { background: var(--bg); border: 0; border-radius: 0; }
+@media print { #btnFull { display: none; } }
 #msg { position: absolute; left: 12px; top: 8px; margin: 0; color: var(--muted); font-size: 13px; }
 .legend {
   position: absolute; left: 12px; bottom: 8px; margin: 0; padding: 0; list-style: none;
@@ -236,6 +240,7 @@ footer { padding: 6px 16px 10px; color: var(--muted); font-size: 12.5px; }
   <section id="stage">
     <svg id="tree" class="gv"><g id="viewport"></g></svg>
     <p id="msg"></p>
+    <button id="btnFull" title="Full screen (F) · Esc to leave" aria-label="Full screen">⛶</button>
     <ul class="legend" id="legend"></ul>
   </section>
 
@@ -742,6 +747,28 @@ const SVG_CSS = `
 const applyView = () => {
   const { x, y, k } = state.view;
   $('viewport').setAttribute('transform', `translate(${x},${y}) scale(${k})`);
+};
+
+// full screen shows the tree alone; Esc (handled by the browser) leaves
+const toggleFullscreen = () => {
+  if (document.fullscreenElement) document.exitFullscreen();
+  else $('stage').requestFullscreen().catch(() => { /* refused, e.g. inside a frame */ });
+};
+
+const onFullscreenChange = () => {
+  const full = document.fullscreenElement === $('stage');
+  $('btnFull').textContent = full ? '✕' : '⛶';
+  $('btnFull').title = full ? 'Leave full screen (Esc)' : 'Full screen (F) · Esc to leave';
+  requestAnimationFrame(() => { if (state.bounds) fitView(); });
+};
+
+// F toggles full screen, unless typing in a box or reading a biography
+const onKeyDown = (event) => {
+  if (event.key !== 'f' && event.key !== 'F') return;
+  if (event.ctrlKey || event.metaKey || event.altKey || $('reader').open) return;
+  if (event.target.closest('input, select, textarea, [contenteditable]')) return;
+  event.preventDefault();
+  toggleFullscreen();
 };
 
 const fitView = () => {
@@ -1445,6 +1472,13 @@ const init = () => {
   $('lnkTitle').addEventListener('click', onTitleClick);
   ['selLayout', 'selColor', 'selUp', 'selDown'].forEach((id) => $(id).addEventListener('change', onSettingChange));
   $('btnFit').addEventListener('click', fitView);
+  if (document.fullscreenEnabled) {
+    $('btnFull').addEventListener('click', toggleFullscreen);
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    document.addEventListener('keydown', onKeyDown);
+  } else {
+    $('btnFull').hidden = true;   // e.g. iPhone Safari, which can't make part of a page full screen
+  }
   $('btnSvg').addEventListener('click', saveSvg);
   $('btnPng').addEventListener('click', savePng);
   $('btnPrint').addEventListener('click', printTree);
