@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="revised" content="2026-11-22 19:36">
-<meta name="version" content="1.2.0">
+<meta name="revised" content="2026-11-22 20:24">
+<meta name="version" content="1.3.0">
 <title>GEDCOM Viewer</title>
 <link rel="icon" href="favicon.ico">
 <style>
@@ -64,6 +64,7 @@ select, button, .btn, input[type=search] {
   border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px;
 }
 #selFile { max-width: 24em; }   /* long repo paths */
+select:disabled { opacity: 0.45; cursor: default; }   /* not used by this layout */
 button, .btn { cursor: pointer; }
 button:hover, .btn:hover { border-color: var(--muted); }
 .bar .btn { color: var(--ink); font-size: 14px; }
@@ -199,6 +200,7 @@ footer { padding: 6px 16px 10px; color: var(--muted); font-size: 12.5px; }
         <option value="horizontal">Horizontal</option>
         <option value="vertical">Vertical</option>
         <option value="fan">Fan (ancestors)</option>
+        <option value="family">Family</option>
       </select>
     </label>
     <label>Colors
@@ -220,6 +222,7 @@ footer { padding: 6px 16px 10px; color: var(--muted); font-size: 12.5px; }
         <option>4</option><option>5</option>
       </select>
     </label>
+    <label title="Show the root's brothers and sisters in the horizontal and vertical trees"><input type="checkbox" id="chkSiblings"> Siblings</label>
     <button id="btnFit">⤢ Fit</button>
     <button id="btnSvg">💾 SVG</button>
     <button id="btnPng">🖼️ PNG</button>
@@ -261,7 +264,7 @@ footer { padding: 6px 16px 10px; color: var(--muted); font-size: 12.5px; }
 
 <footer>
   GEDCOM files stay exactly as exported — this page only reads them, and a file you open stays on your computer.
-  · <a href="https://github.com/theo-armour/gedcom-viewer">Source on GitHub</a> · v1.2.0
+  · <a href="https://github.com/theo-armour/gedcom-viewer">Source on GitHub</a> · v1.3.0
 </footer>
 
 <script>
@@ -354,7 +357,8 @@ const settings = {
   color: 'branch',
   up: 4,
   down: 2,
-  left: 240,         // width of the people panel, in pixels
+  siblings: false,   // show the root's brothers and sisters in the trees
+  left: 240,        // width of the people panel, in pixels
   right: 330,        // width of the details panel
   roots: {}          // remembered root person per file
 };
@@ -498,6 +502,9 @@ const parentsOf = (p) => {
 
 const childrenOf = (p) => p.fams.flatMap((id) => state.families[id].children);
 
+// oldest first; people with no birth year go last, in file order
+const byBirth = (a, b) => (a.birth || 9999) - (b.birth || 9999);
+
 // ---------- Wiki biographies ----------
 
 const parseWiki = () => WIKI.map((row) => {
@@ -619,6 +626,44 @@ const portraitSvg = (url, cx, cy, size) => {
     `<circle class="photo-ring" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${size / 2}"/>`;
 };
 
+// one person's box in the trees and the family view
+const boxSvg = (n, hl) => {
+  const p = state.people[n.id];
+  const photo = photoUrl(p);
+  // a portrait stands in for the 📖 mark, and leaves less room for the name
+  const mark = photo
+    ? portraitSvg(photo, BOX_W - 6 - PHOTO / 2, BOX_H / 2, PHOTO)
+    : p.wiki ? `<text class="yr" x="${BOX_W - 22}" y="34">📖</text>` : '';
+  return `<g class="${nodeClasses(n, hl)}" data-id="${esc(p.id)}" transform="translate(${n.x},${n.y})">
+    <title>${esc(p.name)} ${esc(p.life)}</title>
+    <rect class="box" width="${BOX_W}" height="${BOX_H}" rx="5"/>
+    <rect class="stripe" width="5" height="${BOX_H}" rx="2"/>
+    <text class="nm" x="13" y="18">${esc(clip(p.name, photo ? 21 : 26))}</text>
+    <text class="yr" x="13" y="34">${esc(p.life)}</text>
+    ${mark}
+  </g>`;
+};
+
+const boxBounds = (nodes) => {
+  const xs = nodes.map((n) => n.x), ys = nodes.map((n) => n.y);
+  return {
+    minX: Math.min(...xs), minY: Math.min(...ys),
+    maxX: Math.max(...xs) + BOX_W, maxY: Math.max(...ys) + BOX_H
+  };
+};
+
+// The root's brothers and sisters, oldest first, in the root's own column:
+// the older ones before it, the younger ones after.
+const siblingNodes = (root) => {
+  const p = state.people[root.id];
+  const ids = [...new Set(p.famc.flatMap((id) => state.families[id].children))];
+  const family = ids.map((id) => state.people[id]).sort(byBirth);
+  const at = family.indexOf(p);
+  return family
+    .map((s, i) => ({ id: s.id, gen: 0, ahn: 0, up: root, key: 's' + i, kids: [], slot: root.slot + i - at, sib: true }))
+    .filter((n) => n.id !== p.id);
+};
+
 const drawTree = () => {
   const vertical = settings.layout === 'vertical';
   const up = buildUp(state.rootId, 0, 1, null);
@@ -631,7 +676,8 @@ const drawTree = () => {
   const downNodes = flatten(down).slice(1);
   downNodes.forEach((n) => { n.slot += shift; });
   down.kids.forEach((n) => { n.up = up; });
-  const nodes = [...flatten(up), ...downNodes];
+  const sibNodes = settings.siblings ? siblingNodes(up) : [];
+  const nodes = [...flatten(up), ...downNodes, ...sibNodes];
 
   nodes.forEach((n) => {
     n.x = vertical ? n.slot * (BOX_W + 14) : n.gen * (BOX_W + 44);
@@ -654,35 +700,125 @@ const drawTree = () => {
     return `<path class="${cls}" d="M${x1},${y1}H${(x1 + x2) / 2}V${y2}H${x2}"/>`;
   };
 
-  const nodeSvg = (n) => {
-    const p = state.people[n.id];
-    const photo = photoUrl(p);
-    // a portrait stands in for the 📖 mark, and leaves less room for the name
-    const mark = photo
-      ? portraitSvg(photo, BOX_W - 6 - PHOTO / 2, BOX_H / 2, PHOTO)
-      : p.wiki ? `<text class="yr" x="${BOX_W - 22}" y="34">📖</text>` : '';
-    return `<g class="${nodeClasses(n, hl)}" data-id="${esc(p.id)}" transform="translate(${n.x},${n.y})">
-      <title>${esc(p.name)} ${esc(p.life)}</title>
-      <rect class="box" width="${BOX_W}" height="${BOX_H}" rx="5"/>
-      <rect class="stripe" width="5" height="${BOX_H}" rx="2"/>
-      <text class="nm" x="13" y="18">${esc(clip(p.name, photo ? 21 : 26))}</text>
-      <text class="yr" x="13" y="34">${esc(p.life)}</text>
-      ${mark}
-    </g>`;
+  // a sibling joins the root's line where it turns towards their parents
+  const sibLinkSvg = (n) => {
+    const r = n.up;
+    const cls = hl.has(n.key) ? 'link hl' : 'link';
+    if (vertical) {
+      const x1 = n.x + BOX_W / 2, x2 = r.x + BOX_W / 2, ym = r.y - 20;
+      return `<path class="${cls}" d="M${x1},${n.y}V${ym}H${x2}"/>`;
+    }
+    const xm = r.x + BOX_W + 22;
+    return `<path class="${cls}" d="M${n.x + BOX_W},${n.y + BOX_H / 2}H${xm}V${r.y + BOX_H / 2}"/>`;
   };
+  const lineSvg = (n) => (n.sib ? sibLinkSvg(n) : linkSvg(n));
 
   // plain links first, highlighted links on top, then the boxes
   const links = nodes.filter((n) => n.up);
-  const svg = PHOTO_DEFS + links.filter((n) => !hl.has(n.key)).map(linkSvg).join('') +
-    links.filter((n) => hl.has(n.key)).map(linkSvg).join('') +
-    nodes.map(nodeSvg).join('');
+  const svg = PHOTO_DEFS + links.filter((n) => !hl.has(n.key)).map(lineSvg).join('') +
+    links.filter((n) => hl.has(n.key)).map(lineSvg).join('') +
+    nodes.map((n) => boxSvg(n, hl)).join('');
 
-  const xs = nodes.map((n) => n.x), ys = nodes.map((n) => n.y);
-  const bounds = {
-    minX: Math.min(...xs), minY: Math.min(...ys),
-    maxX: Math.max(...xs) + BOX_W, maxY: Math.max(...ys) + BOX_H
-  };
-  return { svg, bounds };
+  return { svg, bounds: boxBounds(nodes) };
+};
+
+// ---------- Drawing: family view ----------
+// One person with each spouse: the parents of both above, and the children of
+// each marriage below, oldest first. The first spouse sits to the right, the
+// second to the left, any others further right.
+
+const FAM_GAP = 14;              // between brothers and sisters
+const FAM_ROW = BOX_H + 56;      // from the top of one row to the next
+
+const hasParents = (n) => {
+  const { father, mother } = parentsOf(state.people[n.id]);
+  return Boolean(father || mother);
+};
+
+const drawFamily = () => {
+  const p = state.people[state.rootId];
+  const root = { id: p.id, ahn: 1, up: null, key: 'r', y: FAM_ROW };
+  const marriages = p.fams.map((fid, k) => {
+    const fam = state.families[fid];
+    const spouseId = fam.husb === p.id ? fam.wife : fam.husb;
+    return { fam, k, spouse: spouseId ? { id: spouseId, ahn: 0, up: root, key: 'm' + k, y: FAM_ROW } : null };
+  });
+  const spouses = marriages.map((m) => m.spouse).filter(Boolean);
+  const row = [spouses[1], root, spouses[0], ...spouses.slice(2)].filter(Boolean);
+
+  // the middle row: wider gaps where both neighbours have parents to fit above
+  row.forEach((n, i) => {
+    const prev = row[i - 1];
+    n.x = prev ? prev.x + BOX_W + (hasParents(prev) && hasParents(n) ? BOX_W + 60 : 60) : 0;
+  });
+
+  const nodes = [...row];
+  const lines = [];   // { keys, d }: a line lights up when any of its people is on the highlighted line
+
+  // parents, centred over their child
+  row.forEach((child) => {
+    const { father, mother } = parentsOf(state.people[child.id]);
+    const ids = [father, mother].filter(Boolean);
+    if (!ids.length) return;
+    const cx = child.x + BOX_W / 2;
+    const pair = ids.map((id, i) => ({
+      id, ahn: child === root ? (id === father ? 2 : 3) : 0, up: child, key: child.key + 'p' + i, y: 0,
+      x: ids.length === 1 ? cx - BOX_W / 2 : i === 0 ? cx - BOX_W - 15 : cx + 15
+    }));
+    nodes.push(...pair);
+    const keys = pair.map((n) => n.key);
+    if (pair.length === 2) {
+      const ym = BOX_H / 2;
+      lines.push({ keys, d: `M${pair[0].x + BOX_W},${ym}H${pair[1].x}M${cx},${ym}V${child.y}` });
+    } else {
+      lines.push({ keys, d: `M${cx},${BOX_H}V${child.y}` });
+    }
+  });
+
+  // each marriage: a line between the couple, and a point below it where the children hang
+  const groups = marriages.map(({ fam, k, spouse }) => {
+    const rootMid = root.x + BOX_W / 2;
+    let dropX = rootMid, dropY = root.y + BOX_H;          // no spouse recorded: from the root
+    if (spouse && Math.abs(row.indexOf(spouse) - row.indexOf(root)) === 1) {
+      const [l, r] = spouse.x < root.x ? [spouse, root] : [root, spouse];
+      dropY = root.y + BOX_H / 2;
+      dropX = (l.x + BOX_W + r.x) / 2;
+      lines.push({ keys: [spouse.key], d: `M${l.x + BOX_W},${dropY}H${r.x}` });
+    } else if (spouse) {
+      // not side by side: the line runs under the boxes between them
+      const spouseMid = spouse.x + BOX_W / 2;
+      dropY = root.y + BOX_H + 8 * k;
+      dropX = (rootMid + spouseMid) / 2;
+      lines.push({ keys: [spouse.key], d: `M${rootMid},${root.y + BOX_H}V${dropY}H${spouseMid}V${root.y + BOX_H}` });
+    }
+    const kids = fam.children.map((id) => state.people[id]).sort(byBirth);
+    return { k, dropX, dropY, kids };
+  });
+
+  // children: each marriage's row centred under its drop point, pushed right if it would overlap
+  // lower for many marriages, so each one's line under the row stays above its children's
+  const childY = 2 * FAM_ROW + 14 * Math.max(0, marriages.length - 3);
+  let end = -Infinity;
+  groups.filter((g) => g.kids.length).sort((a, b) => a.dropX - b.dropX).forEach((g) => {
+    const width = g.kids.length * (BOX_W + FAM_GAP) - FAM_GAP;
+    const start = Math.max(g.dropX - width / 2, end + 40);
+    end = start + width;
+    const busY = childY - 20 - 6 * g.k;
+    g.kids.forEach((c, i) => {
+      const n = { id: c.id, ahn: 0, up: root, key: 'c' + g.k + '-' + i, x: start + i * (BOX_W + FAM_GAP), y: childY };
+      nodes.push(n);
+      const cx = n.x + BOX_W / 2;
+      lines.push({ keys: [n.key], d: `M${g.dropX},${g.dropY}V${busY}H${cx}V${childY}` });
+    });
+  });
+
+  const hl = highlightKeys(nodes);
+  const lit = (line) => line.keys.some((key) => hl.has(key));
+  const lineSvg = (line) => `<path class="${lit(line) ? 'link hl' : 'link'}" d="${line.d}"/>`;
+  const svg = PHOTO_DEFS + lines.filter((l) => !lit(l)).map(lineSvg).join('') +
+    lines.filter(lit).map(lineSvg).join('') +
+    nodes.map((n) => boxSvg(n, hl)).join('');
+  return { svg, bounds: boxBounds(nodes) };
 };
 
 // ---------- Drawing: fan chart ----------
@@ -840,12 +976,28 @@ const renderLegend = () => {
     `<li style="--c: var(${c})">${esc(label)}</li>`).join('');
 };
 
+const LAYOUT_MSG = {
+  fan: 'The fan shows ancestors only.',
+  family: 'Parents above, spouses beside, children below.'
+};
+
+const isTreeLayout = () => settings.layout === 'horizontal' || settings.layout === 'vertical';
+
+// grey out the controls the current layout doesn't use
+const syncControls = () => {
+  $('chkSiblings').disabled = !isTreeLayout();
+  $('selUp').disabled = settings.layout === 'family';
+  $('selDown').disabled = settings.layout === 'family';
+};
+
 const render = (fit) => {
   if (!state.rootId) return;
-  const drawing = settings.layout === 'fan' ? drawFan() : drawTree();
+  const draw = { fan: drawFan, family: drawFamily }[settings.layout] || drawTree;
+  const drawing = draw();
   state.bounds = drawing.bounds;
   $('viewport').innerHTML = drawing.svg;
-  $('msg').textContent = settings.layout === 'fan' ? 'The fan shows ancestors only.' : '';
+  $('msg').textContent = LAYOUT_MSG[settings.layout] || '';
+  syncControls();
   renderLegend();
   if (fit) fitView(); else applyView();
 };
@@ -1231,18 +1383,22 @@ const selectPerson = (id) => {
 // The address can open the tree on someone:
 //   #wiki=Ida-Watkins-Shirk-1864-1951   the person whose Wiki folder this is (sturdiest: survives GEDCOM ids changing)
 //   #root=@I08@                          a GEDCOM id
-// plus, optionally, &layout=fan|horizontal|vertical and &file=<a File menu entry>.
+// plus, optionally, &layout=fan|horizontal|vertical|family, &siblings=1|0 and &file=<a File menu entry>.
 
-const LAYOUTS = ['horizontal', 'vertical', 'fan'];
+const LAYOUTS = ['horizontal', 'vertical', 'fan', 'family'];
 
 const readLink = () => {
   const q = new URLSearchParams(location.hash.slice(1));
-  const link = { root: q.get('root') || '', wiki: q.get('wiki') || '', file: q.get('file') || '', layout: q.get('layout') || '' };
-  return link.root || link.wiki || link.file || link.layout ? link : null;
+  const link = {
+    root: q.get('root') || '', wiki: q.get('wiki') || '', file: q.get('file') || '',
+    layout: q.get('layout') || '', siblings: q.get('siblings') || ''
+  };
+  return link.root || link.wiki || link.file || link.layout || link.siblings ? link : null;
 };
 
 const applyLinkSettings = (link) => {
   if (LAYOUTS.includes(link.layout)) settings.layout = link.layout;
+  if (link.siblings) settings.siblings = link.siblings === '1';
   if (link.file && FILES.includes(link.file)) settings.file = link.file;   // only files in the menu
 };
 
@@ -1262,6 +1418,7 @@ const personLink = (p) => {
   const parts = [p.wiki ? 'wiki=' + linkPart(p.wiki.folder) : 'root=' + linkPart(p.id)];
   if (settings.file !== DEFAULT_FILE) parts.push('file=' + linkPart(settings.file));
   parts.push('layout=' + settings.layout);
+  if (settings.siblings && isTreeLayout()) parts.push('siblings=1');
   return page + '#' + parts.join('&');
 };
 
@@ -1281,6 +1438,7 @@ const onHashChange = () => {
   const before = settings.file;
   applyLinkSettings(link);
   $('selLayout').value = settings.layout;
+  $('chkSiblings').checked = settings.siblings;
   saveSettings();
   if (settings.file !== before) {
     state.link = link;
@@ -1393,7 +1551,7 @@ const embedPhotos = (svg) => {
   const unescape = (s) => s.replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>');
   return Promise.all(urls.map((u) => toDataUrl(unescape(u)).catch(() => '')))
     .then((data) => {
-      $('msg').textContent = settings.layout === 'fan' ? 'The fan shows ancestors only.' : '';
+      $('msg').textContent = LAYOUT_MSG[settings.layout] || '';
       // a portrait that couldn't be fetched is left out rather than left broken
       return urls.reduce((out, u, i) => out.split(`href="${u}"`).join(data[i] ? `href="${data[i]}"` : 'href=""'), svg);
     });
@@ -1439,6 +1597,7 @@ const onSettingChange = () => {
   settings.color = $('selColor').value;
   settings.up = Number($('selUp').value);
   settings.down = Number($('selDown').value);
+  settings.siblings = $('chkSiblings').checked;
   saveSettings();
   render(true);
 };
@@ -1599,13 +1758,14 @@ const init = () => {
   $('selColor').value = settings.color;
   $('selUp').value = settings.up;
   $('selDown').value = settings.down;
+  $('chkSiblings').checked = settings.siblings;
   applyPanelWidths();
 
   $('selFile').addEventListener('change', onFileChange);
   $('inpFile').addEventListener('change', onOpenFile);
   $('btnUrl').addEventListener('click', onUrlClick);
   $('lnkTitle').addEventListener('click', onTitleClick);
-  ['selLayout', 'selColor', 'selUp', 'selDown'].forEach((id) => $(id).addEventListener('change', onSettingChange));
+  ['selLayout', 'selColor', 'selUp', 'selDown', 'chkSiblings'].forEach((id) => $(id).addEventListener('change', onSettingChange));
   $('btnFit').addEventListener('click', fitView);
   if (document.fullscreenEnabled) {
     $('btnFull').addEventListener('click', toggleFullscreen);

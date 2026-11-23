@@ -6,7 +6,8 @@ A family tree viewer for GEDCOM files, the standard export format of Ancestry, M
 
 ## What it does
 
-* Draws a tree around one person: horizontal, vertical or a fan chart of ancestors
+* Draws a tree around one person: horizontal, vertical or a fan chart of ancestors, with the person's siblings if wanted
+* Family view: a person with each spouse, both sets of parents above and each marriage's children below
 * Colors each of the four grandparent branches, or male and female
 * Click a person to see their facts, family, notes, pictures and sources, and their line back to the root. Double-click to make them the root
 * Reads a person's Wiki biography in a panel over the tree, and the READMEs from the 📄 Read me… menu
@@ -14,7 +15,7 @@ A family tree viewer for GEDCOM files, the standard export format of Ancestry, M
 * Drag to pan, scroll to zoom
 * Full screen: the ⛶ button at the tree's top right, or the F key, shows the tree alone; Esc leaves
 * Shows Wiki portraits in the tree boxes and the fan
-* Links that open the tree on a person, e.g. `#wiki=Ida-Watkins-Shirk-1864-1951` or `#root=@I08@`, with `&layout=` and `&file=` if wanted; "🔗 Copy link" in the details panel makes one
+* Links that open the tree on a person, e.g. `#wiki=Ida-Watkins-Shirk-1864-1951` or `#root=@I08@`, with `&layout=`, `&siblings=1` and `&file=` if wanted; "🔗 Copy link" in the details panel makes one
 * Saves the drawing as SVG or PNG (portraits included), or prints it to PDF
 
 ## Your own file
@@ -39,6 +40,9 @@ One file, `index.html`: plain HTML, CSS and JavaScript, no libraries, no build s
 
 ### 2026-11-22
 
+* Release 1.3.0
+* Family layout: a person with each spouse, both sets of parents above and each marriage's children below; `&layout=family`
+* Siblings checkbox: the root's brothers and sisters in the horizontal and vertical trees, oldest first; `&siblings=1`
 * Theo Armour's biography link follows its rename to `README-Norman-Theo-Armour-III-1947-.md`
 * Release 1.2.0
 * Opens the master tree from the genealogy repo, `GEDCOM-files/armour-genealogy.ged`. It's the only family file in the menu; the online-service exports are left out for privacy
