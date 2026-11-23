@@ -2,6 +2,7 @@
 
 ## 2026-11-22
 
+* **Footer** — dropped the sentence about 📖 and the Armour family Wiki; the footer now has only the note on files, the GitHub link and the version
 * **Load files from the READMEs** — in the reader, a link to a GEDCOM file that's in the File menu gets a 🌳 and opens that file in the viewer, closing the reader. So do the samples in the sample files README and the master tree in the GEDCOM files README. Links to other `.ged` files, such as the 2025 exports, stay plain links, so the File menu remains the only list of files the viewer opens
 * **📄 Read me… menu** — a toolbar menu opens the viewer's README, the sample files README and the genealogy repo's GEDCOM files README in the biography reader. The reader now reads Markdown from both GitHub Pages sites: "Open ↗" goes to TooToo for genealogy pages and to GitHub for viewer pages, and folder links in the viewer repo go to the folder on GitHub
 * **Biography reader** — "📖 Read biography" in the details panel opens the person's README in a panel over the tree, fetched from the genealogy repo's GitHub Pages site and drawn by a small built-in Markdown renderer (headings, tables, lists, quotes, images, links, emphasis, code, `<br>`). Links to other Wiki pages open in the reader, with ← Back; other links open in a new tab. Esc, ✕ or a click outside closes it. "Open in Wiki ↗" still opens TooToo. Checked on Sophia Fulton Watkins and Erastus Foote in headless Edge
