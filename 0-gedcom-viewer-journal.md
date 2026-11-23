@@ -2,6 +2,7 @@
 
 ## 2026-11-22
 
+* **More samples** — added four more sample files to `sample-ged-files/` and the File menu. Three are webtreeprint.com's other "famous GEDCOMs": `bronte.ged`, `pres2020.ged` (US presidents, 2,322 people) and `royal92.ged` (Denis Reid's 1992 European royals, 3,010 people). The fourth is the Gramps example tree, `gramps-sample.ged`. Rewrote `sample-ged-files/README.md` with a table of every file, its people and families, format and source, plus acknowledgements
 * **Only the master tree** — for privacy, the File menu no longer lists every `.ged` in the genealogy repo; the GitHub file listing is gone. The menu now holds the 2026 master tree and the samples
 * **Sample files** — added `sample-ged-files/kennedy.ged` (Chronoplex's Kennedy sample, unzipped from its `.gdz`; GEDCOM 7.0, 70 people) to sit beside `shakespeare.ged` (same as the current webtreeprint.com download). Both are in the menu as "sample: …" and load from beside the page. Maria Skłodowska-Curie isn't a file: Topola reads her straight from the WikiTree API
 * **New default file** — the viewer now opens on the hand-maintained master tree, `GEDCOM-files/2026/2026-11-22-armour-genealogy.ged`, starting from me. The MyHeritage export stays in the fallback File menu
