@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="revised" content="2026-11-22 18:00">
+<meta name="revised" content="2026-11-22 18:40">
 <meta name="version" content="1.1.0">
 <title>GEDCOM Viewer</title>
 <link rel="icon" href="favicon.ico">
@@ -133,6 +133,39 @@ aside {
 
 footer { padding: 6px 16px 10px; color: var(--muted); font-size: 12.5px; }
 
+/* biography reader: a README from the genealogy Wiki, over the tree */
+#reader {
+  width: min(920px, calc(100vw - 32px)); height: calc(100vh - 48px); max-height: none;
+  padding: 0; border: 1px solid var(--border); border-radius: 10px;
+  background: var(--card); color: var(--ink);
+}
+#reader[open] { display: flex; flex-direction: column; }
+#reader::backdrop { background: rgb(0 0 0 / 0.45); }
+.reader-bar {
+  display: flex; gap: 8px; align-items: center; padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.reader-bar .title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.reader-bar a { color: var(--b1); }
+#readerBody { flex: 1; overflow-y: auto; padding: 8px 24px 32px; font-size: 15px; line-height: 1.55; }
+.md h1, .md h2, .md h3 { font-family: Georgia, "Times New Roman", serif; line-height: 1.25; }
+.md h1 { font-size: 28px; margin: 12px 0 8px; }
+.md h2 { font-size: 21px; margin: 24px 0 6px; border-bottom: 1px solid var(--border); padding-bottom: 3px; }
+.md h3 { font-size: 17px; margin: 18px 0 4px; }
+.md h4, .md h5, .md h6 { font-size: 15px; margin: 14px 0 4px; }
+.md a { color: var(--b1); }
+.md img { max-width: 100%; max-height: 480px; border-radius: 6px; }
+.md table { border-collapse: collapse; margin: 10px 0; font-size: 14px; display: block; overflow-x: auto; }
+.md th, .md td { border: 1px solid var(--border); padding: 4px 8px; vertical-align: top; }
+.md th { background: var(--bg); }
+.md blockquote { margin: 10px 0; padding: 2px 14px; border-left: 3px solid var(--line); color: var(--muted); }
+.md code { font-size: 13px; background: var(--bg); padding: 1px 4px; border-radius: 4px; overflow-wrap: anywhere; }
+.md pre { background: var(--bg); padding: 8px; border-radius: 6px; overflow-x: auto; }
+.md pre code { background: none; padding: 0; }
+.md hr { border: 0; border-top: 1px solid var(--border); margin: 18px 0; }
+.md li { margin: 2px 0; }
+#details .bio button { border: 0; background: none; padding: 0; color: var(--b1); text-decoration: underline; cursor: pointer; }
+
 @media (max-width: 900px) {
   html, body { height: auto; }
   main { grid-template-columns: 1fr; gap: var(--gap); }
@@ -209,6 +242,16 @@ footer { padding: 6px 16px 10px; color: var(--muted); font-size: 12.5px; }
 
   <aside id="details"></aside>
 </main>
+
+<dialog id="reader" aria-labelledby="readerTitle">
+  <div class="reader-bar">
+    <button id="btnReaderBack" title="Back to the previous page" hidden>← Back</button>
+    <span class="title" id="readerTitle"></span>
+    <a id="lnkReaderWiki" href="" target="_blank" rel="noopener">Open in Wiki ↗</a>
+    <button id="btnReaderClose" title="Close (Esc)">✕</button>
+  </div>
+  <div id="readerBody" class="md"></div>
+</dialog>
 
 <footer>
   GEDCOM files stay exactly as exported — this page only reads them, and a file you open stays on your computer. 📖 marks a person with a page in the <a href="https://theo-armour.github.io/genealogy/index.html#Wiki/README.md">Armour family Wiki</a>.
@@ -855,7 +898,8 @@ const renderDetails = () => {
   const w = p.wiki;
   const wikiHtml = w
     ? (w.photo ? `<figure><img src="${esc(encodeURI(WIKI_PATH + w.folder + '/' + w.photo))}" alt=""></figure>` : '') +
-      `<p>📖 <a href="${esc(encodeURI(WIKI_LINK + w.folder + '/' + w.page))}" target="_blank" rel="noopener">Biography: ${esc(w.folder)}</a></p>`
+      `<p class="bio">📖 <button data-bio="${esc(encodeURI(WIKI_PATH + w.folder + '/' + w.page))}">Read biography</button>` +
+      ` · <a href="${esc(encodeURI(WIKI_LINK + w.folder + '/' + w.page))}" target="_blank" rel="noopener">open in Wiki ↗</a></p>`
     : '';
   const notes = kids(p.node, 'NOTE').map((n) => resolve(n).value).filter(Boolean);
   const events = eventRows(p.node);
@@ -879,6 +923,185 @@ const renderDetails = () => {
 };
 
 const removeBrokenImage = (event) => event.target.closest('figure').remove();
+
+// ---------- Biography reader ----------
+// Biographies are Markdown files on the genealogy repo's GitHub Pages site,
+// fetched and drawn here by a small renderer covering what the Wiki uses:
+// headings, paragraphs, lists, tables, quotes, rules, images, links, emphasis, code, <br>.
+
+const TOOTOO = GENEALOGY + 'index.html?owner=theo-armour&repo=genealogy#';
+
+// TooToo shows a repo file as .../genealogy/#Wiki/...; turn that back into the file's own address
+const mdAddress = (href) => {
+  const m = href.match(/^https:\/\/theo-armour\.github\.io\/genealogy\/(?:index\.html)?(?:\?[^#]*)?#(.+\.md)$/i);
+  return m ? GENEALOGY + m[1] : href;
+};
+
+const isGenealogyMd = (url) => url.startsWith(GENEALOGY) && /\.md$/i.test(url.split(/[?#]/)[0]);
+
+const resolveUrl = (href, base) => {
+  try { return mdAddress(new URL(href, base).href); } catch (err) { return href; }
+};
+
+const URL_PART = '((?:[^()\\s]|\\([^()\\s]*\\))+)(?:\\s+"[^"]*")?';
+const INLINE = new RegExp('(`+)([\\s\\S]*?)\\1|!\\[([^\\]]*)\\]\\(' + URL_PART + '\\)|\\[([^\\]]+)\\]\\(' + URL_PART + '\\)|<(https?:\\/\\/[^>\\s]+)>|<br\\s*\\/?>', 'gi');
+
+const mdLink = (href, label, base) => {
+  const url = resolveUrl(href, base);
+  return isGenealogyMd(url)
+    ? `<a href="${esc(TOOTOO + url.slice(GENEALOGY.length))}" data-md="${esc(url)}">${label}</a>`
+    : `<a href="${esc(url)}" target="_blank" rel="noopener">${label}</a>`;
+};
+
+// inline Markdown: links, images and code become placeholders, the rest is escaped, then emphasis
+const mdInline = (text, base) => {
+  const held = [];
+  const hold = (html) => '\u0000' + (held.push(html) - 1) + '\u0000';
+  const marked = text.replace(INLINE, (all, ticks, code, alt, src, label, href, auto) => {
+    if (ticks) return hold(`<code>${esc(code.trim())}</code>`);
+    if (src !== undefined) return hold(`<img src="${esc(resolveUrl(src, base))}" alt="${esc(alt)}" loading="lazy">`);
+    if (href !== undefined) return hold(mdLink(href, mdInline(label, base), base));
+    if (auto) return hold(mdLink(auto, esc(auto), base));
+    return hold('<br>');
+  });
+  return esc(marked)
+    .replace(/\*\*\*(?=\S)([\s\S]*?\S)\*\*\*/g, '<strong><em>$1</em></strong>')
+    .replace(/\*\*(?=\S)([\s\S]*?\S)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|[^\w*\\])\*(?=\S)([^*]*?\S)\*(?![\w*])/g, '$1<em>$2</em>')
+    .replace(/(^|[^\w\\])_(?=\S)([^_]*?\S)_(?!\w)/g, '$1<em>$2</em>')
+    .replace(/\\([\\`*_[\]()#|>-])/g, '$1')
+    .replace(/\u0000(\d+)\u0000/g, (all, i) => held[i]);
+};
+
+const LIST_ITEM = /^(\s*)([*+-]|\d+[.)])\s+(.*)$/;
+const TABLE_RULE = /^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$/;
+const BLOCK_START = /^\s*(#{1,6}\s|>|```|\|)|^\s*([*+-]|\d+[.)])\s+|^\s*(-{3,}|\*{3,}|_{3,})\s*$/;
+
+const splitRow = (line) => line.trim().replace(/^\|/, '').replace(/\|$/, '')
+  .replace(/\\\|/g, '\u0001').split('|').map((c) => c.replace(/\u0001/g, '|').trim());
+
+const mdTable = (rows, base) => {
+  const align = splitRow(rows[1]).map((c) => (/^:-+:$/.test(c) ? 'center' : /-+:$/.test(c) ? 'right' : ''));
+  const cell = (tag, c, i) => `<${tag}${align[i] ? ` style="text-align:${align[i]}"` : ''}>${mdInline(c, base)}</${tag}>`;
+  const head = splitRow(rows[0]);
+  const body = rows.slice(2).map((r) => `<tr>${splitRow(r).map((c, i) => cell('td', c, i)).join('')}</tr>`).join('');
+  // a header row of empty cells (a common infobox trick) is left out
+  const headHtml = head.some((c) => c) ? `<thead><tr>${head.map((c, i) => cell('th', c, i)).join('')}</tr></thead>` : '';
+  return `<table>${headHtml}<tbody>${body}</tbody></table>`;
+};
+
+const mdList = (lines, base) => {
+  const items = [];
+  lines.forEach((line) => {
+    const m = line.match(LIST_ITEM);
+    if (m) items.push({ indent: m[1].length, ordered: /\d/.test(m[2]), start: parseInt(m[2], 10), text: m[3] });
+    else if (items.length) items[items.length - 1].text += ' ' + line.trim();
+  });
+  let html = '';
+  const stack = [];
+  items.forEach((it) => {
+    while (stack.length > 1 && it.indent < stack[stack.length - 1].indent) html += `</li></${stack.pop().tag}>`;
+    const top = stack[stack.length - 1];
+    if (!top || it.indent > top.indent) {
+      const tag = it.ordered ? 'ol' : 'ul';
+      stack.push({ indent: it.indent, tag });
+      html += `<${tag}${it.ordered && it.start !== 1 ? ` start="${it.start}"` : ''}>`;
+    } else {
+      html += '</li>';
+    }
+    html += '<li>' + mdInline(it.text, base);
+  });
+  while (stack.length) html += `</li></${stack.pop().tag}>`;
+  return html;
+};
+
+const mdToHtml = (text, base) => {
+  const lines = text.replace(/^﻿/, '').replace(/\r\n?/g, '\n').split('\n');
+  const out = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    let m;
+    if (!line.trim()) { i++; continue; }
+    if (/^\s*```/.test(line)) {
+      const code = [];
+      for (i++; i < lines.length && !/^\s*```/.test(lines[i]); i++) code.push(lines[i]);
+      i++;
+      out.push(`<pre><code>${esc(code.join('\n'))}</code></pre>`);
+    } else if ((m = line.match(/^\s*(#{1,6})\s+(.*?)\s*#*\s*$/))) {
+      out.push(`<h${m[1].length}>${mdInline(m[2], base)}</h${m[1].length}>`);
+      i++;
+    } else if (/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(line)) {
+      out.push('<hr>');
+      i++;
+    } else if (/^\s*\|/.test(line) && TABLE_RULE.test(lines[i + 1] || '')) {
+      const rows = [];
+      while (i < lines.length && /^\s*\|/.test(lines[i])) rows.push(lines[i++]);
+      out.push(mdTable(rows, base));
+    } else if (/^\s*>/.test(line)) {
+      const quote = [];
+      while (i < lines.length && /^\s*>/.test(lines[i])) quote.push(lines[i++].replace(/^\s*>\s?/, ''));
+      out.push(`<blockquote>${mdToHtml(quote.join('\n'), base)}</blockquote>`);
+    } else if (LIST_ITEM.test(line)) {
+      const list = [];
+      while (i < lines.length && lines[i].trim() && (LIST_ITEM.test(lines[i]) || /^\s+\S/.test(lines[i]))) list.push(lines[i++]);
+      out.push(mdList(list, base));
+    } else {
+      const para = [];
+      while (i < lines.length && lines[i].trim() && !(para.length && BLOCK_START.test(lines[i]))) para.push(lines[i++].trim());
+      out.push(`<p>${mdInline(para.join('\n'), base)}</p>`);
+    }
+  }
+  return out.join('\n');
+};
+
+const reader = { history: [] };
+
+// open a Markdown file from the genealogy site in the reader; push=false when going back
+const openReader = (url, push = true) => {
+  if (push && reader.current) reader.history.push(reader.current);
+  reader.current = url;
+  const name = decodeURIComponent(url.split('/').pop());
+  $('readerTitle').textContent = name;
+  $('lnkReaderWiki').href = TOOTOO + url.slice(GENEALOGY.length);
+  $('btnReaderBack').hidden = !reader.history.length;
+  $('readerBody').innerHTML = '<p class="rel">Loading…</p>';
+  if (!$('reader').open) $('reader').showModal();
+  fetch(url)
+    .then((response) => (response.ok ? response.text() : Promise.reject(response.status)))
+    .then((text) => {
+      if (reader.current !== url) return;
+      $('readerBody').innerHTML = mdToHtml(text, url);
+      const h1 = $('readerBody').querySelector('h1');
+      if (h1) $('readerTitle').textContent = h1.textContent;
+      $('readerBody').scrollTop = 0;
+    })
+    .catch(() => {
+      if (reader.current !== url) return;
+      $('readerBody').innerHTML = `<p>Could not load ${esc(name)}. Try <a href="${esc($('lnkReaderWiki').href)}" target="_blank" rel="noopener">opening it in the Wiki ↗</a>.</p>`;
+    });
+};
+
+const onBioClick = (event) => {
+  const el = event.target.closest('[data-bio]');
+  if (!el) return;
+  reader.history = [];
+  reader.current = null;
+  openReader(el.dataset.bio);
+};
+
+// links to other Wiki pages open in the reader; the rest open in a new tab
+const onReaderClick = (event) => {
+  if (event.target === $('reader')) { $('reader').close(); return; }   // click on the backdrop
+  const a = event.target.closest('a[data-md]');
+  if (!a || event.ctrlKey || event.metaKey || event.shiftKey) return;
+  event.preventDefault();
+  openReader(a.dataset.md);
+};
+
+const onReaderBack = () => {
+  if (reader.history.length) openReader(reader.history.pop(), false);
+};
 
 // ---------- Choosing people ----------
 
@@ -1172,6 +1395,10 @@ const init = () => {
   $('inpSearch').addEventListener('input', renderList);
   $('list').addEventListener('click', onPersonClick);
   $('details').addEventListener('click', onPersonClick);
+  $('details').addEventListener('click', onBioClick);
+  $('reader').addEventListener('click', onReaderClick);
+  $('btnReaderBack').addEventListener('click', onReaderBack);
+  $('btnReaderClose').addEventListener('click', () => $('reader').close());
   $('tree').addEventListener('click', onTreeClick);
   $('tree').addEventListener('dblclick', onTreeDblClick);
   $('tree').addEventListener('pointerdown', onPointerDown);

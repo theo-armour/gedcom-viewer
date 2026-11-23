@@ -21,7 +21,7 @@ Or use **🔗 URL…** and paste the web address of a `.ged` file. It's added to
 
 ## My family files
 
-The File menu opens the master tree in my [genealogy repo](https://github.com/theo-armour/genealogy), `GEDCOM-files/armour-genealogy.ged`. It's the only family file offered, because the online-service exports hold details of living people. People with a biography in my [family Wiki](https://theo-armour.github.io/genealogy/) are marked 📖 and link to their page.
+The File menu opens the master tree in my [genealogy repo](https://github.com/theo-armour/genealogy), `GEDCOM-files/armour-genealogy.ged`. It's the only family file offered, because the online-service exports hold details of living people. People with a biography in my [family Wiki](https://theo-armour.github.io/genealogy/) are marked 📖. In the details panel, **Read biography** opens their page over the tree, read straight from the Wiki's GitHub Pages site; links to other biographies open in the same reader, with ← Back. **Open in Wiki ↗** opens the page in the Wiki itself.
 
 The menu also has sample trees from [sample-ged-files/](sample-ged-files/): the Brontës, the Gramps example tree, the Kennedys, the US presidents, the royals of Europe (Royal92) and Shakespeare. Their sources and credits are in that folder's README. The menu is the `FILES` list in `index.html`. To add a biography, add a line to `WIKI`.
 
