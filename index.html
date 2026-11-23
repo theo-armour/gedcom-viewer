@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="revised" content="2026-11-22 18:40">
+<meta name="revised" content="2026-11-22 19:20">
 <meta name="version" content="1.1.0">
 <title>GEDCOM Viewer</title>
 <link rel="icon" href="favicon.ico">
@@ -220,6 +220,7 @@ footer { padding: 6px 16px 10px; color: var(--muted); font-size: 12.5px; }
     <button id="btnSvg">💾 SVG</button>
     <button id="btnPng">🖼️ PNG</button>
     <button id="btnPrint">🖨️ Print / PDF</button>
+    <select id="selReadme" title="Read a README in the reader"><option value="">📄 Read me…</option></select>
   </div>
 </header>
 
@@ -937,19 +938,51 @@ const mdAddress = (href) => {
   return m ? GENEALOGY + m[1] : href;
 };
 
-const isGenealogyMd = (url) => url.startsWith(GENEALOGY) && /\.md$/i.test(url.split(/[?#]/)[0]);
+// The reader shows Markdown from two GitHub Pages sites: the genealogy repo and this viewer's own repo.
+const VIEWER = 'https://theo-armour.github.io/gedcom-viewer/';
+const VIEWER_GITHUB = 'https://github.com/theo-armour/gedcom-viewer/';
 
+// READMEs offered by the 📄 Read me menu
+const READMES = [
+  ['GEDCOM Viewer', VIEWER + 'README.md'],
+  ['Sample files', VIEWER + 'sample-ged-files/README.md'],
+  ['Genealogy GEDCOM files', GENEALOGY + 'GEDCOM-files/README.md']
+];
+
+const isGenealogyMd = (url) => (url.startsWith(GENEALOGY) || url.startsWith(VIEWER)) && /\.md$/i.test(url.split(/[?#]/)[0]);
+
+// where "Open ↗" goes for a page in the reader: TooToo for the genealogy repo, GitHub for the viewer
+const outsideLink = (url) => (url.startsWith(VIEWER)
+  ? { href: VIEWER_GITHUB + 'blob/main/' + url.slice(VIEWER.length), label: 'Open on GitHub ↗' }
+  : { href: TOOTOO + url.slice(GENEALOGY.length), label: 'Open in Wiki ↗' });
+
+// a folder link in the viewer repo goes to that folder on GitHub, since Pages has no folder listings
 const resolveUrl = (href, base) => {
-  try { return mdAddress(new URL(href, base).href); } catch (err) { return href; }
+  try {
+    const url = mdAddress(new URL(href, base).href);
+    return url.startsWith(VIEWER) && url.endsWith('/') ? VIEWER_GITHUB + 'tree/main/' + url.slice(VIEWER.length) : url;
+  } catch (err) { return href; }
 };
 
 const URL_PART = '((?:[^()\\s]|\\([^()\\s]*\\))+)(?:\\s+"[^"]*")?';
 const INLINE = new RegExp('(`+)([\\s\\S]*?)\\1|!\\[([^\\]]*)\\]\\(' + URL_PART + '\\)|\\[([^\\]]+)\\]\\(' + URL_PART + '\\)|<(https?:\\/\\/[^>\\s]+)>|<br\\s*\\/?>', 'gi');
 
+// a link to a GEDCOM file that's in the File menu loads it in the viewer.
+// Other .ged links stay plain links, so the menu stays the only list of files the viewer opens.
+const menuFileFor = (url) => {
+  const path = url.split(/[?#]/)[0];
+  if (!/\.ged$/i.test(path)) return '';
+  const site = [VIEWER, GENEALOGY].find((s) => path.startsWith(s));
+  const name = site ? decodeURIComponent(path.slice(site.length)) : '';
+  return FILES.includes(name) ? name : '';
+};
+
 const mdLink = (href, label, base) => {
   const url = resolveUrl(href, base);
+  const ged = menuFileFor(url);
+  if (ged) return `<a href="${esc(url)}" data-ged="${esc(ged)}" title="Open in the viewer">${label} 🌳</a>`;
   return isGenealogyMd(url)
-    ? `<a href="${esc(TOOTOO + url.slice(GENEALOGY.length))}" data-md="${esc(url)}">${label}</a>`
+    ? `<a href="${esc(outsideLink(url).href)}" data-md="${esc(url)}">${label}</a>`
     : `<a href="${esc(url)}" target="_blank" rel="noopener">${label}</a>`;
 };
 
@@ -1057,13 +1090,15 @@ const mdToHtml = (text, base) => {
 
 const reader = { history: [] };
 
-// open a Markdown file from the genealogy site in the reader; push=false when going back
+// open a Markdown file from either site in the reader; push=false when going back
 const openReader = (url, push = true) => {
   if (push && reader.current) reader.history.push(reader.current);
   reader.current = url;
   const name = decodeURIComponent(url.split('/').pop());
+  const out = outsideLink(url);
   $('readerTitle').textContent = name;
-  $('lnkReaderWiki').href = TOOTOO + url.slice(GENEALOGY.length);
+  $('lnkReaderWiki').href = out.href;
+  $('lnkReaderWiki').textContent = out.label;
   $('btnReaderBack').hidden = !reader.history.length;
   $('readerBody').innerHTML = '<p class="rel">Loading…</p>';
   if (!$('reader').open) $('reader').showModal();
@@ -1078,7 +1113,7 @@ const openReader = (url, push = true) => {
     })
     .catch(() => {
       if (reader.current !== url) return;
-      $('readerBody').innerHTML = `<p>Could not load ${esc(name)}. Try <a href="${esc($('lnkReaderWiki').href)}" target="_blank" rel="noopener">opening it in the Wiki ↗</a>.</p>`;
+      $('readerBody').innerHTML = `<p>Could not load ${esc(name)}. Try <a href="${esc(out.href)}" target="_blank" rel="noopener">${esc(out.label)}</a>.</p>`;
     });
 };
 
@@ -1093,10 +1128,31 @@ const onBioClick = (event) => {
 // links to other Wiki pages open in the reader; the rest open in a new tab
 const onReaderClick = (event) => {
   if (event.target === $('reader')) { $('reader').close(); return; }   // click on the backdrop
+  const ged = event.target.closest('a[data-ged]');
+  if (ged && !(event.ctrlKey || event.metaKey || event.shiftKey)) {
+    event.preventDefault();
+    $('reader').close();
+    $('selFile').value = ged.dataset.ged;
+    loadFile(ged.dataset.ged);
+    return;
+  }
   const a = event.target.closest('a[data-md]');
   if (!a || event.ctrlKey || event.metaKey || event.shiftKey) return;
   event.preventDefault();
   openReader(a.dataset.md);
+};
+
+const fillReadmeMenu = () => {
+  READMES.forEach(([label, url]) => $('selReadme').add(new Option(label, url)));
+};
+
+const onReadmeChange = (event) => {
+  const url = event.target.value;
+  event.target.value = '';
+  if (!url) return;
+  reader.history = [];
+  reader.current = null;
+  openReader(url);
 };
 
 const onReaderBack = () => {
@@ -1398,6 +1454,8 @@ const init = () => {
   $('details').addEventListener('click', onBioClick);
   $('reader').addEventListener('click', onReaderClick);
   $('btnReaderBack').addEventListener('click', onReaderBack);
+  fillReadmeMenu();
+  $('selReadme').addEventListener('change', onReadmeChange);
   $('btnReaderClose').addEventListener('click', () => $('reader').close());
   $('tree').addEventListener('click', onTreeClick);
   $('tree').addEventListener('dblclick', onTreeDblClick);

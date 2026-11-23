@@ -2,7 +2,7 @@
 
 tags #GEDCOM
 
-Sample family trees for trying out the viewer. They're all in its File menu as "sample: …". Each file is kept exactly as downloaded, apart from Kennedy, which came zipped.
+Sample family trees for trying out the viewer. They're all in its File menu as "sample: …". When you read this page in the viewer (📄 Read me… → Sample files), click a file name marked 🌳 to open it in the viewer. Each file is kept exactly as downloaded, apart from Kennedy, which came zipped.
 
 ## Sample files
 
