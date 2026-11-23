@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="revised" content="2026-11-22 17:10">
+<meta name="revised" content="2026-11-22 17:40">
 <meta name="version" content="1.1.0">
 <title>GEDCOM Viewer</title>
 <link rel="icon" href="favicon.ico">
@@ -461,9 +461,21 @@ const parseWiki = () => WIKI.map((row) => {
   };
 });
 
-// A person matches a Wiki folder when the birth and death years are the same
-// and the names share a word. Living people need two shared words.
+// A file can name a person's Wiki folder outright: 1 REFN <folder> / 2 TYPE Wiki
+// (the master tree does). A folder not in WIKI still links, without a photo.
+const wikiRef = (p) => {
+  const ref = kids(p.node, 'REFN').find((r) => r.children.some((c) => c.tag === 'TYPE' && /^wiki$/i.test(c.value.trim())));
+  if (!ref || !ref.value.trim()) return null;
+  const folder = ref.value.trim();
+  return state.wiki.find((w) => w.folder === folder) ||
+    { folder, photo: '', page: 'README-' + folder.replace(/ /g, '-') + '.md' };
+};
+
+// Otherwise a person matches a Wiki folder when the birth and death years are
+// the same and the names share a word. Living people need two shared words.
 const findWiki = (p) => {
+  const named = wikiRef(p);
+  if (named) return named;
   if (!p.birth) return null;
   return state.wiki.find((w) => {
     if (w.birth !== p.birth || w.death !== p.death) return false;

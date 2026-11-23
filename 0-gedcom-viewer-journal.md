@@ -2,6 +2,7 @@
 
 ## 2026-11-22
 
+* **Biography links from the file** — a person with `1 REFN <Wiki folder>` / `2 TYPE Wiki` now links straight to that folder's biography, with the photo from `WIKI` if it has one. Only people without that line fall back to matching by birth and death years. The master tree now carries the line for all 55 Wiki people, so Theo, Allison and six people whose GED years differ from their folder names (Maria Kudasheva, Anne Burrage, Alice Burrage, Francis Haskell, Fyodor Trepov, Dmitri Trepov) get their links too
 * **More samples** — added four more sample files to `sample-ged-files/` and the File menu. Three are webtreeprint.com's other "famous GEDCOMs": `bronte.ged`, `pres2020.ged` (US presidents, 2,322 people) and `royal92.ged` (Denis Reid's 1992 European royals, 3,010 people). The fourth is the Gramps example tree, `gramps-sample.ged`. Rewrote `sample-ged-files/README.md` with a table of every file, its people and families, format and source, plus acknowledgements
 * **Only the master tree** — for privacy, the File menu no longer lists every `.ged` in the genealogy repo; the GitHub file listing is gone. The menu now holds the 2026 master tree and the samples
 * **Sample files** — added `sample-ged-files/kennedy.ged` (Chronoplex's Kennedy sample, unzipped from its `.gdz`; GEDCOM 7.0, 70 people) to sit beside `shakespeare.ged` (same as the current webtreeprint.com download). Both are in the menu as "sample: …" and load from beside the page. Maria Skłodowska-Curie isn't a file: Topola reads her straight from the WikiTree API
