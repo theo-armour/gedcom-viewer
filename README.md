@@ -39,6 +39,7 @@ One file, `index.html`: plain HTML, CSS and JavaScript, no libraries, no build s
 
 ### 2026-11-22
 
+* Theo Armour's biography link follows its rename to `README-Norman-Theo-Armour-III-1947-.md`
 * Release 1.2.0
 * Opens the master tree from the genealogy repo, `GEDCOM-files/armour-genealogy.ged`. It's the only family file in the menu; the online-service exports are left out for privacy
 * Six sample trees: Brontë, Gramps, Kennedy, US presidents, Royal92 and Shakespeare
